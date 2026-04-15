@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>云原生控制器自动化测试平台</title>
+<style>
+:root{--bg:#f0f4f8;--card:rgba(255,255,255,.78);--card-s:#fff;--bdr:rgba(200,210,225,.55);--shadow:0 4px 24px rgba(0,0,0,.06);--tx:#1e293b;--tx2:#64748b;--tx3:#94a3b8;--acc:#4f46e5;--acc-l:#e0e7ff;--ok:#059669;--ok-l:#d1fae5;--err:#dc2626;--err-l:#fee2e2;--warn:#d97706;--warn-l:#fef3c7;--r:14px;--rs:8px;--font:-apple-system,'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);min-height:100vh;line-height:1.5}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+
+/* ── Header ── */
+.header{background:rgba(255,255,255,.88);backdrop-filter:blur(16px);border-bottom:1px solid var(--bdr);padding:0 28px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.header h1{font-size:17px;font-weight:700;color:var(--tx);letter-spacing:.3px}
+.header .sep{width:1px;height:22px;background:var(--bdr)}
+.header .hint{font-size:13px;color:var(--tx2)}
+
+/* ── Layout ── */
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+.sidebar{width:280px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);border-right:1px solid var(--bdr);padding:20px 16px;flex-shrink:0;overflow-y:auto;position:sticky;top:0;align-self:flex-start;height:100%}
+.main{flex:1;padding:24px 28px;overflow-y:auto;min-width:0;height:100%}
+
+/* ── Cards ── */
+.card{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* ── Sidebar ── */
+.sb-label{font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.sb-select{width:100%;padding:9px 12px;border:1px solid var(--bdr);border-radius:var(--rs);background:#fff;color:var(--tx);font-size:13px;font-family:var(--font);appearance:none;cursor:pointer}
+.sb-select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+/* ── Pipeline ── */
+.pipeline{margin-top:20px}
+.pipe-step{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;transition:background .15s;position:relative;margin-bottom:2px}
+.pipe-step:hover{background:rgba(79,70,229,.06)}
+.pipe-step.active{background:var(--acc-l)}
+.pipe-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:2px solid var(--bdr);background:#fff;color:var(--tx3);font-weight:600;transition:all .2s}
+.pipe-step.done .pipe-dot{background:var(--ok);border-color:var(--ok);color:#fff}
+.pipe-step.running .pipe-dot{background:var(--acc);border-color:var(--acc);color:#fff;animation:pulse 1.5s infinite}
+.pipe-step.error .pipe-dot{background:var(--err);border-color:var(--err);color:#fff}
+.pipe-name{font-size:13px;font-weight:500;color:var(--tx)}
+.pipe-sub{font-size:11px;color:var(--tx3)}
+.pipe-line{width:2px;height:12px;background:var(--bdr);margin-left:25px}
+.pipe-branch{display:flex;gap:0;margin-left:14px;margin-top:2px}
+.pipe-branch-line{width:16px;border-left:2px solid var(--bdr);border-bottom:2px solid var(--bdr);height:20px;border-radius:0 0 0 8px;margin-right:-2px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── Stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--card-s);border:1px solid var(--bdr);border-radius:var(--rs);padding:14px 16px;text-align:center}
+.stat-val{font-size:28px;font-weight:700;color:var(--acc);line-height:1.2}
+.stat-label{font-size:11px;color:var(--tx2);margin-top:2px}
+
+/* ── Tabs ── */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:20px}
+.tab{padding:10px 22px;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;user-select:none}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.panel{display:none}.panel.active{display:block}
+
+/* ── Forms ── */
+.form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
+.form-group{flex:1;min-width:180px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:4px}
+.form-input,.form-select{width:100%;padding:8px 12px;border:1px solid var(--bdr);border-radius:var(--rs);background:#fff;color:var(--tx);font-size:13px;font-family:var(--font)}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.input-row{display:flex;gap:6px}.input-row input{flex:1}
+
+/* ── Buttons ── */
+.btn{padding:8px 18px;border:1px solid var(--bdr);border-radius:var(--rs);background:#fff;color:var(--tx);font-size:13px;font-family:var(--font);cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:#f8fafc;border-color:#cbd5e1}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn-primary:hover{background:#4338ca}
+.btn-danger{background:#fff;border-color:var(--err);color:var(--err)}
+.btn-danger:hover{background:var(--err-l)}
+.btn-success{background:#fff;border-color:var(--ok);color:var(--ok)}
+.btn-success:hover{background:var(--ok-l)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.btn.is-running{background:var(--acc-l);color:var(--acc);border-color:var(--acc);pointer-events:none}
+
+/* ── Log ── */
+.log-box{background:#1e293b;border-radius:var(--rs);padding:14px;overflow-y:auto;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;color:#94a3b8;line-height:1.7}
+.log-box .l-err{color:#f87171}.log-box .l-ok{color:#34d399}.log-box .l-info{color:#cbd5e1}
+.log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+
+/* ── Split layout: config left + log right ── */
+.split-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.split-panel .split-config{min-width:0}
+.split-panel .split-log{min-width:0;position:sticky;top:16px}
+.split-panel .split-log .card{display:flex;flex-direction:column}
+.split-panel .split-log .log-box{height:calc(100vh - 380px);min-height:260px}
+@media(max-width:960px){.split-panel{grid-template-columns:1fr}.split-panel .split-log{position:static}.split-panel .split-log .log-box{height:300px}}
+
+/* ── Inline checkpoint info (shown under picker inputs after selection) ── */
+.ckpt-info-bar{margin-top:4px;padding:5px 8px;background:var(--acc-l);border:1px solid rgba(79,70,229,.18);border-radius:var(--rs);font-size:11px;display:none}
+.ckpt-info-bar.visible{display:block}
+.ckpt-info-bar .ci-name{font-weight:600;color:var(--acc);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ckpt-info-bar .ci-stats{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+
+/* ── Fault-type checkboxes ── */
+.ft-type-checks{display:flex;flex-wrap:wrap;gap:8px}
+.ft-check{display:flex;align-items:flex-start;gap:6px;background:var(--card-s);border:1px solid var(--bdr);border-radius:var(--rs);padding:8px 12px;cursor:pointer;transition:all .15s;min-width:160px}
+.ft-check:hover{border-color:var(--acc);background:var(--acc-l)}
+.ft-check input[type=checkbox]{margin-top:3px;accent-color:var(--acc)}
+.ft-check-label{font-size:13px;font-weight:500;color:var(--tx);display:block}
+.ft-check-desc{font-size:11px;color:var(--tx3);display:block;margin-top:1px}
+
+/* ── Modal ── */
+.modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.modal-mask.open{display:flex}
+.modal-box{background:#fff;border-radius:var(--r);width:min(680px,94vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h3{font-size:15px;font-weight:600}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-close{background:none;border:none;font-size:18px;color:var(--tx2);cursor:pointer;padding:4px 8px;border-radius:4px}
+.modal-close:hover{background:#f1f5f9}
+
+/* ── Checkpoint item ── */
+.ckpt-item{padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:var(--rs);transition:background .1s}
+.ckpt-item:hover{background:#f8fafc}
+.ckpt-name{font-size:13px;font-weight:500;color:var(--tx)}
+.ckpt-meta{font-size:11px;color:var(--tx3);margin-top:2px}
+.ckpt-path{font-size:10px;color:var(--tx3);font-family:Consolas,monospace;margin-top:3px}
+.ckpt-preview{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center}
+.ckpt-stat{background:#f1f5f9;border-radius:4px;padding:1px 7px;font-size:11px;color:var(--tx2);white-space:nowrap}
+.ckpt-stat b{color:var(--tx)}
+.ckpt-stat.ok{background:var(--ok-l);color:var(--ok)}
+.ckpt-stat.err{background:var(--err-l);color:var(--err)}
+.ckpt-stat.warn{background:var(--warn-l);color:var(--warn)}
+.ckpt-stat.acc{background:var(--acc-l);color:var(--acc)}
+.ckpt-tcs{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;align-items:center}
+.ckpt-tc{background:#e0e7ff;color:var(--acc);border-radius:3px;padding:1px 6px;font-size:10px;font-family:Consolas,monospace}
+.ckpt-tc-more{color:var(--tx3);font-size:10px}
+
+/* ── Badge ── */
+.badge{padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;display:inline-block}
+.badge-ok{background:var(--ok-l);color:var(--ok)}
+.badge-run{background:var(--acc-l);color:var(--acc)}
+.badge-err{background:var(--err-l);color:var(--err)}
+.badge-idle{background:#f1f5f9;color:var(--tx3)}
+.badge-stop{background:var(--warn-l);color:var(--warn)}
+
+
+/* ── Table ── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8fafc;padding:10px 14px;text-align:left;color:var(--tx2);font-weight:600;border-bottom:2px solid #e2e8f0}
+td{padding:10px 14px;border-bottom:1px solid #f1f5f9}
+tr:hover td{background:#fafbfd}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid var(--bdr);box-shadow:0 8px 30px rgba(0,0,0,.1);padding:12px 20px;border-radius:var(--rs);font-size:13px;display:none;z-index:300;max-width:360px}
+
+/* ── Viewer search / filter bar ── */
+.viewer-bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.viewer-search{flex:1;min-width:180px;padding:7px 12px;border:1px solid var(--bdr);border-radius:var(--rs);background:#fff;color:var(--tx);font-size:13px;font-family:var(--font)}
+.viewer-search:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.viewer-count{font-size:12px;color:var(--tx3);white-space:nowrap}
+
+/* ── Instrument info viewer ── */
+.ii-file-group{border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:8px;overflow:hidden}
+.ii-file-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f8fafc;cursor:pointer;user-select:none;gap:8px}
+.ii-file-head:hover{background:#f1f5f9}
+.ii-file-path{font-size:12px;font-weight:600;color:var(--tx);font-family:Consolas,monospace;word-break:break-all}
+.ii-file-cnt{font-size:11px;color:var(--tx3);white-space:nowrap;flex-shrink:0}
+.ii-file-body{display:none;border-top:1px solid var(--bdr)}
+.ii-file-body.open{display:block}
+.ii-branch-row{display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid #f8fafc;align-items:baseline}
+.ii-branch-row:last-child{border-bottom:none}
+.ii-bi{font-size:11px;font-family:Consolas,monospace;color:var(--acc);background:var(--acc-l);padding:1px 7px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+.ii-line{font-size:11px;color:var(--tx3);flex-shrink:0;white-space:nowrap}
+.ii-fmts{font-size:12px;color:var(--tx);flex:1;min-width:0}
+.ii-fmt{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ii-meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.ii-meta-item{background:#f1f5f9;border-radius:4px;padding:2px 10px;font-size:12px;color:var(--tx2)}
+.ii-meta-item b{color:var(--tx)}
+
+/* ── Field relations viewer ── */
+.fr-branch-row{border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:6px;overflow:hidden}
+.fr-branch-head{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#f8fafc;cursor:pointer;user-select:none}
+.fr-branch-head:hover{background:#f1f5f9}
+.fr-bi{font-size:11px;font-family:Consolas,monospace;color:var(--acc);background:var(--acc-l);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.fr-fmt{font-size:12px;color:var(--tx);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr-field-cnt{font-size:11px;color:var(--tx3);flex-shrink:0;white-space:nowrap}
+.fr-branch-body{display:none;border-top:1px solid var(--bdr)}
+.fr-branch-body.open{display:block}
+.fr-field-item{padding:6px 14px 6px 36px;border-bottom:1px solid #f8fafc}
+.fr-field-item:last-child{border-bottom:none}
+.fr-field-path{font-size:11px;font-family:Consolas,monospace;color:var(--warn);font-weight:500;margin-bottom:3px}
+.fr-var{display:inline-block;background:#fef3c7;color:#92400e;border-radius:3px;padding:1px 6px;font-size:11px;margin:1px;font-family:Consolas,monospace}
+.fr-no-vars{font-size:11px;color:var(--tx3);font-style:italic}
+
+/* ── Testplan viewer ── */
+.tp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.tp-stat{background:var(--card-s);border:1px solid var(--bdr);border-radius:var(--rs);padding:10px 14px;text-align:center}
+.tp-stat-val{font-size:22px;font-weight:700;color:var(--acc)}
+.tp-stat-lbl{font-size:11px;color:var(--tx2);margin-top:2px}
+.tc-row{border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:6px;overflow:hidden}
+.tc-row-head{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;user-select:none;background:#f8fafc}
+.tc-row-head:hover{background:#f1f5f9}
+.tc-id{font-size:12px;font-family:Consolas,monospace;font-weight:600;color:var(--acc);background:var(--acc-l);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.tc-freq{font-size:11px;color:var(--tx3);flex-shrink:0}
+.tc-br-cnt{font-size:11px;color:var(--tx2);flex-shrink:0;margin-left:auto}
+.tc-new{font-size:10px;background:var(--ok-l);color:var(--ok);border-radius:3px;padding:1px 6px;flex-shrink:0}
+.tc-row-body{display:none;border-top:1px solid var(--bdr);padding:8px 14px 10px 36px}
+.tc-row-body.open{display:block}
+.tc-bi-tag{display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;color:var(--tx2)}
+.tc-bi-tag b{color:var(--acc);font-family:Consolas,monospace}
+.tc-cr-pre{margin-top:0;background:#0f172a;color:#94a3b8;padding:10px 12px;border-radius:6px;overflow-x:auto;font-size:11px;font-family:Consolas,monospace;max-height:180px;overflow-y:auto;white-space:pre}
+
+/* ── Branch source modal ── */
+.src-modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.src-modal-mask.open{display:flex}
+.src-modal-box{background:#0f172a;border-radius:var(--r);width:min(820px,96vw);max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.src-modal-hdr{padding:12px 18px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.src-modal-title{font-size:13px;font-weight:600;color:#94a3b8;font-family:Consolas,monospace}
+.src-modal-meta{font-size:11px;color:#475569}
+.src-modal-close{background:none;border:none;font-size:18px;color:#475569;cursor:pointer;padding:4px 8px;border-radius:4px}
+.src-modal-close:hover{color:#94a3b8;background:#1e293b}
+.src-modal-body{overflow-y:auto;flex:1}
+.src-code-block{margin:0;padding:16px 20px;font-family:Consolas,'Cascadia Code',monospace;font-size:12px;line-height:1.7;color:#cbd5e1;background:transparent;white-space:pre;overflow-x:auto}
+.src-code-block .hl-current{background:rgba(79,70,229,.25);border-left:3px solid var(--acc);padding-left:5px;margin-left:-8px;display:block}
+.src-code-block .hl-lnum{color:#334155;user-select:none;margin-right:12px;display:inline-block;min-width:36px;text-align:right}
+.src-branch-btn{cursor:pointer;border-bottom:1px dashed currentColor;opacity:.85}
+.src-branch-btn:hover{opacity:1}
+
+/* ── CR fullscreen modal ── */
+.cr-modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.7);backdrop-filter:blur(4px);z-index:210;align-items:center;justify-content:center}
+.cr-modal-mask.open{display:flex}
+.cr-modal-box{background:#0f172a;border-radius:var(--r);width:min(900px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.cr-modal-hdr{padding:12px 18px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+.cr-modal-title{font-size:13px;font-weight:600;color:#94a3b8}
+.cr-modal-body{overflow:auto;flex:1;padding:16px 20px}
+.cr-yaml{font-family:Consolas,'Cascadia Code',monospace;font-size:12px;line-height:1.7;white-space:pre;color:#cbd5e1;margin:0}
+/* YAML syntax colors */
+.y-key{color:#7dd3fc}
+.y-str{color:#86efac}
+.y-num{color:#fda4af}
+.y-bool{color:#c4b5fd}
+.y-null{color:#94a3b8;font-style:italic}
+.y-comment{color:#475569;font-style:italic}
+.y-sep{color:#334155}
+
+/* ── Viewer cards inside overview (collapsible) ── */
+.view-card{border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.view-card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#f8fafc;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:background .12s}
+.view-card-head:hover{background:#f1f5f9}
+.view-card-head.open{border-bottom-color:var(--bdr)}
+.view-card-title{font-size:14px;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:8px}
+.view-card-meta{font-size:12px;color:var(--tx3)}
+.view-card-body{display:none;padding:18px}
+.view-card-body.open{display:block}
+
+/* ── Pod status table ── */
+.pod-table{width:100%;border-collapse:collapse;font-size:12px}
+.pod-table th{background:#f8fafc;padding:6px 10px;text-align:left;color:var(--tx2);font-weight:600;border-bottom:2px solid var(--bdr);white-space:nowrap}
+.pod-table td{padding:6px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.pod-table tr:hover td{background:#fafbfd}
+.pod-phase-Running{color:var(--ok);font-weight:600}
+.pod-phase-Pending{color:var(--warn);font-weight:600}
+.pod-phase-Failed,.pod-phase-Unknown{color:var(--err);font-weight:600}
+.pod-cs{display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border-radius:3px;padding:1px 6px;margin:1px;font-size:11px}
+.pod-cs.ready{background:var(--ok-l);color:var(--ok)}
+.pod-cs.err{background:var(--err-l);color:var(--err)}
+.pod-cs.warn{background:var(--warn-l);color:var(--warn)}
+.pod-restart{color:var(--err);font-weight:600}
+.pod-refresh-ts{font-size:11px;color:var(--tx3);margin-top:6px;text-align:right}
+
+/* ── Round log diff panel ── */
+.rl-entry{border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:8px;overflow:hidden}
+.rl-entry-head{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f8fafc;cursor:pointer;user-select:none}
+.rl-entry-head:hover{background:#f1f5f9}
+.rl-res{font-size:12px;font-weight:600;color:var(--acc);font-family:Consolas,monospace;flex-shrink:0}
+.rl-ts{font-size:11px;color:var(--tx3);flex-shrink:0}
+.rl-cnt{font-size:11px;color:var(--tx2);margin-left:auto;flex-shrink:0}
+.rl-fault-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;flex-shrink:0}
+.rl-fault-badge.has-fault{background:var(--err-l);color:var(--err)}
+.rl-fault-badge.no-fault{background:#f1f5f9;color:var(--tx3)}
+.rl-entry-body{display:none;border-top:1px solid var(--bdr)}
+.rl-entry-body.open{display:block}
+.rl-event{display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:0;font-size:11px;border-bottom:1px solid #f1f5f9}
+.rl-event:last-child{border-bottom:none}
+.rl-event-seq{padding:7px 8px;color:var(--tx3);font-family:Consolas,monospace;background:#f8fafc;border-right:1px solid #f1f5f9;text-align:center}
+.rl-event-meta{padding:7px 10px;border-right:1px solid #f1f5f9;display:flex;flex-direction:column;gap:2px}
+.rl-event-type{font-weight:700;font-size:10px;padding:1px 5px;border-radius:3px;display:inline-block;width:fit-content}
+.rl-ev-ADDED{background:#dcfce7;color:#166534}
+.rl-ev-MODIFIED{background:#dbeafe;color:#1e40af}
+.rl-ev-DELETED{background:#fee2e2;color:#991b1b}
+.rl-event-obj{padding:7px 10px;border-right:1px solid #f1f5f9;font-family:Consolas,monospace;white-space:pre-wrap;word-break:break-all;color:#475569;font-size:10.5px;max-height:160px;overflow-y:auto}
+.rl-event-sent{padding:7px 10px;font-family:Consolas,monospace;white-space:pre-wrap;word-break:break-all;font-size:10.5px;max-height:160px;overflow-y:auto}
+.rl-event-sent.faulted{background:#fff7ed;color:#9a3412}
+.rl-event-sent.clean{color:#475569}
+.rl-col-hdr{display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:0;font-size:10px;font-weight:700;color:var(--tx3);background:#f8fafc;border-bottom:1px solid var(--bdr);padding:4px 0}
+.rl-col-hdr span{padding:0 10px}
+
+/* ── Responsive ── */
+@media(max-width:860px){.sidebar{width:220px}.main{padding:16px}}
+@media(max-width:640px){.layout{flex-direction:column;height:auto;overflow:visible}.sidebar{width:100%;border-right:none;border-bottom:1px solid var(--bdr);height:auto;position:static}.main{height:auto}}
+
+/* ── Misc ── */
+.empty{text-align:center;color:var(--tx3);padding:32px;font-size:13px}
+.section-desc{font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.6}
+code{background:#f1f5f9;padding:1px 6px;border-radius:4px;font-family:Consolas,monospace;font-size:12px;color:var(--acc)}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:#f1f5f9;color:var(--tx2);margin:1px 2px}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>云原生控制器自动化测试平台</h1>
+  <div class="sep"></div>
+  <span class="hint">端到端自动化测试 &amp; 故障注入韧性测试</span>
+</div>
+
+<div class="layout">
+  <!-- ═══ Sidebar ═══ -->
+  <div class="sidebar">
+    <div class="sb-label">测试项目</div>
+    <select class="sb-select" id="proj-sel" onchange="onProjectChange(this.value)">
+      <option value="">— 请选择项目 —</option>
+    </select>
+
+    <div class="pipeline" id="pipeline-box" style="display:none">
+      <div class="sb-label" style="margin-top:16px;margin-bottom:10px">测试流程</div>
+      <div id="pipeline-steps"></div>
+      <div style="margin-top:14px">
+        <div class="sb-label" style="margin-bottom:6px">快速统计</div>
+        <div id="sidebar-stats" style="font-size:12px;color:var(--tx2)">
+          <div>测试用时：<b id="ss-duration">-</b></div>
+          <div>已执行用例：<b id="ss-cases">0</b></div>
+          <div>故障注入次数：<b id="ss-faults">0</b></div>
+          <div>检测到问题：<b id="ss-bugs" style="color:var(--err)">0</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Main ═══ -->
+  <div class="main">
+    <div id="no-project" class="empty" style="padding:80px 20px">
+      <div style="font-size:48px;margin-bottom:16px">📋</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px">请选择一个测试项目</div>
+      <div style="color:var(--tx3)">从左侧选择目标控制器，开始自动化测试之旅</div>
+    </div>
+
+    <div id="project-content" style="display:none">
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchTab('overview')">项目总览</div>
+        <div class="tab" onclick="switchTab('e2e')">端到端测试</div>
+        <div class="tab" onclick="switchTab('fault')">故障注入测试</div>
+        <div class="tab" onclick="switchTab('tasks')">任务管理</div>
+      </div>
+
+      <!-- ═══ 项目总览 ═══ -->
+      <div id="tab-overview" class="panel active">
+        <div class="stats-row" id="overview-stats"></div>
+        <div class="card">
+          <div class="card-title">测试流程总览</div>
+          <div class="section-desc">下方展示当前项目的完整测试流程。程序插桩默认已完成，关联分析和测试计划生成可在"高级设置"中操作或使用已有检查点。标记完成后，即可开始核心测试。</div>
+          <div id="overview-pipeline"></div>
+        </div>
+
+        <!-- ── 关联分析 & 测试计划生成 操作区 ── -->
+        <div class="view-card" id="vc-ops">
+          <div class="view-card-head" onclick="toggleViewCard('vc-ops')">
+            <span class="view-card-title">⚙ 分析 &amp; 生成操作</span>
+            <span class="view-card-meta" id="vc-ops-meta">关联分析 / 测试计划生成</span>
+          </div>
+          <div class="view-card-body" id="vc-ops-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <!-- Relation Analysis -->
+              <div>
+                <div class="card-title" style="margin-bottom:10px">关联分析</div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">检查点（留空则新建）</label>
+                    <div class="input-row">
+                      <input class="form-input" id="ea-ckpt" placeholder="选择或输入检查点路径">
+                      <button class="btn btn-sm" onclick="openCkptPicker('ea-ckpt','ea')">选择</button>
+                    </div>
+                    <div class="ckpt-info-bar" id="ea-ckpt-info"><div class="ci-name" id="ea-ckpt-info-name"></div><div class="ci-stats" id="ea-ckpt-info-stats"></div></div>
+                  </div>
+                </div>
+                <div class="btn-group">
+                  <button class="btn btn-primary btn-sm" id="ea-start-btn" onclick="startExploreAll()">开始关联分析</button>
+                  <button class="btn btn-danger btn-sm" onclick="stopCurrentJob('ea')">中断</button>
+                </div>
+                <div id="ea-log-wrap" style="margin-top:12px;display:none">
+                  <div class="log-header"><span style="font-size:12px;font-weight:500">运行日志</span><button class="btn btn-sm" onclick="clearLog('ea-log')">清空</button></div>
+                  <div class="log-box" id="ea-log" style="height:180px"></div>
+                </div>
+              </div>
+              <!-- Test Plan Generation -->
+              <div>
+                <div class="card-title" style="margin-bottom:10px">测试计划生成</div>
+                <div class="form-row">
+                  <div class="form-group" style="max-width:110px"><label class="form-label">最大轮数</label>
+                    <input class="form-input" id="tp-rounds" type="number" value="0" placeholder="0=不限">
+                  </div>
+                  <div class="form-group"><label class="form-label">检查点（留空则新建）</label>
+                    <div class="input-row">
+                      <input class="form-input" id="tp-ckpt" placeholder="选择或输入检查点路径">
+                      <button class="btn btn-sm" onclick="openCkptPicker('tp-ckpt','tp')">选择</button>
+                    </div>
+                    <div class="ckpt-info-bar" id="tp-ckpt-info"><div class="ci-name" id="tp-ckpt-info-name"></div><div class="ci-stats" id="tp-ckpt-info-stats"></div></div>
+                  </div>
+                </div>
+                <div class="btn-group">
+                  <button class="btn btn-primary btn-sm" id="tp-start-btn" onclick="startTestPlan()">开始生成</button>
+                  <button class="btn btn-danger btn-sm" onclick="stopCurrentJob('tp')">中断</button>
+                </div>
+                <div id="tp-log-wrap" style="margin-top:12px;display:none">
+                  <div class="log-header"><span style="font-size:12px;font-weight:500">运行日志</span><button class="btn btn-sm" onclick="clearLog('tp-log')">清空</button></div>
+                  <div class="log-box" id="tp-log" style="height:180px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 插桩信息 viewer ── -->
+        <div class="view-card" id="vc-instrument">
+          <div class="view-card-head" onclick="toggleViewCard('vc-instrument',loadInstrumentInfo)">
+            <span class="view-card-title">🔍 插桩信息</span>
+            <span class="view-card-meta" id="vc-instrument-meta">instrument_info.json</span>
+          </div>
+          <div class="view-card-body" id="vc-instrument-body">
+            <div class="viewer-bar">
+              <input class="viewer-search" id="ii-search" placeholder="搜索文件路径或条件表达式…" oninput="filterInstrumentInfo()">
+              <span class="viewer-count" id="ii-count"></span>
+              <button class="btn btn-sm" onclick="loadInstrumentInfo()">刷新</button>
+            </div>
+            <div id="ii-meta" class="ii-meta"></div>
+            <div id="ii-body"><div class="empty">展开后自动加载</div></div>
+          </div>
+        </div>
+
+        <!-- ── 关联分析结果 viewer ── -->
+        <div class="view-card" id="vc-relations">
+          <div class="view-card-head" onclick="toggleViewCard('vc-relations',loadRelations)">
+            <span class="view-card-title">🔗 关联分析结果</span>
+            <span class="view-card-meta" id="vc-relations-meta">field_relations.json → 分支映射</span>
+          </div>
+          <div class="view-card-body" id="vc-relations-body">
+            <div class="viewer-bar">
+              <input class="viewer-search" id="fr-search" placeholder="搜索分支表达式或字段路径…" oninput="filterRelations()">
+              <span class="viewer-count" id="fr-count"></span>
+              <button class="btn btn-sm" onclick="loadRelations()">刷新</button>
+            </div>
+            <div id="fr-body"><div class="empty">展开后自动加载</div></div>
+          </div>
+        </div>
+
+        <!-- ── 测试计划结果 viewer ── -->
+        <div class="view-card" id="vc-testplan">
+          <div class="view-card-head" onclick="toggleViewCard('vc-testplan')">
+            <span class="view-card-title">📋 测试计划结果</span>
+            <span class="view-card-meta" id="vc-testplan-meta">测试用例 &amp; 分支覆盖</span>
+          </div>
+          <div class="view-card-body" id="vc-testplan-body">
+            <div class="form-row" style="margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">测试计划检查点</label>
+                <div class="input-row">
+                  <input class="form-input" id="tv-ckpt" placeholder="选择或输入测试计划 checkpoint.json 路径">
+                  <button class="btn btn-sm" onclick="openCkptPicker('tv-ckpt','tp')">选择</button>
+                </div>
+                <div class="ckpt-info-bar" id="tv-ckpt-info"><div class="ci-name" id="tv-ckpt-info-name"></div><div class="ci-stats" id="tv-ckpt-info-stats"></div></div>
+              </div>
+              <div style="display:flex;align-items:flex-end"><button class="btn btn-primary" onclick="loadTestplanViewer()">加载</button></div>
+            </div>
+            <div id="tv-stats" class="tp-stats" style="display:none"></div>
+            <div class="viewer-bar" id="tv-filter-bar" style="display:none">
+              <input class="viewer-search" id="tv-search" placeholder="搜索 TC ID 或分支条件…" oninput="filterTestplanTCs()">
+              <span class="viewer-count" id="tv-count"></span>
+            </div>
+            <div id="tv-body"><div class="empty">请选择测试计划检查点后点击「加载」</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 端到端测试 ═══ -->
+      <div id="tab-e2e" class="panel">
+        <div class="section-desc">利用测试计划生成的用例，测试不同输入下控制器是否能够正确完成工作。需要先完成测试计划生成，或选择已有的测试计划检查点。</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-val" id="e2e-rounds">0</div><div class="stat-label">已执行轮次</div></div>
+          <div class="stat-card"><div class="stat-val" id="e2e-cases">0</div><div class="stat-label">测试用例数</div></div>
+          <div class="stat-card"><div class="stat-val" id="e2e-duration">-</div><div class="stat-label">测试用时</div></div>
+          <div class="stat-card"><div class="stat-val" id="e2e-bugs" style="color:var(--err)">0</div><div class="stat-label">检测到问题</div></div>
+        </div>
+        <div class="split-panel">
+          <div class="split-config">
+            <div class="card">
+              <div class="card-title">配置端到端测试</div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">测试计划检查点</label>
+                  <div class="input-row">
+                    <input class="form-input" id="e2e-tp-ckpt" placeholder="选择测试计划检查点">
+                    <button class="btn btn-sm" onclick="openCkptPicker('e2e-tp-ckpt','tp')">选择</button>
+                  </div>
+                  <div class="ckpt-info-bar" id="e2e-tp-ckpt-info"><div class="ci-name" id="e2e-tp-ckpt-info-name"></div><div class="ci-stats" id="e2e-tp-ckpt-info-stats"></div></div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="max-width:120px"><label class="form-label">最大轮数</label>
+                  <input class="form-input" id="e2e-max-rounds" type="number" value="50">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">断点续传检查点（可选）</label>
+                  <div class="input-row">
+                    <input class="form-input" id="e2e-ckpt" placeholder="留空则从头开始">
+                    <button class="btn btn-sm" onclick="openCkptPicker('e2e-ckpt','run')">选择</button>
+                  </div>
+                  <div class="ckpt-info-bar" id="e2e-ckpt-info"><div class="ci-name" id="e2e-ckpt-info-name"></div><div class="ci-stats" id="e2e-ckpt-info-stats"></div></div>
+                </div>
+              </div>
+              <div class="btn-group">
+                <button class="btn btn-primary" id="e2e-start-btn" onclick="startE2ETest()">开始端到端测试</button>
+                <button class="btn btn-danger" onclick="stopCurrentJob('e2e')">中断测试</button>
+              </div>
+            </div>
+          </div>
+          <div class="split-log">
+            <div class="card" id="e2e-log-card">
+              <div class="log-header"><span class="card-title" style="margin:0">运行日志</span>
+                <div class="btn-group"><button class="btn btn-sm" onclick="viewCurrentTc('e2e')">查看当前用例</button><button class="btn btn-sm" onclick="clearLog('e2e-log')">清空</button><button class="btn btn-sm" onclick="toggleAutoScroll('e2e',this)">自动滚动：开</button></div>
+              </div>
+              <div class="log-box" id="e2e-log"><div style="color:var(--tx3);text-align:center;padding:40px 0">等待启动测试...</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 故障注入测试 ═══ -->
+      <div id="tab-fault" class="panel">
+        <div class="section-desc">在控制器运行过程中随机注入故障（崩溃、网络断开、延迟等），测试控制器能否自动恢复并完成工作。可使用测试计划用例或预设基准配置。</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-val" id="ft-rounds">0</div><div class="stat-label">总轮次</div></div>
+          <div class="stat-card"><div class="stat-val" id="ft-injections">0</div><div class="stat-label">故障注入次数</div></div>
+          <div class="stat-card"><div class="stat-val" id="ft-duration">-</div><div class="stat-label">测试用时</div></div>
+          <div class="stat-card"><div class="stat-val" id="ft-bugs" style="color:var(--err)">0</div><div class="stat-label">检测到问题</div></div>
+          <div class="stat-card"><div class="stat-val" id="ft-crash">0</div><div class="stat-label">崩溃</div></div>
+          <div class="stat-card"><div class="stat-val" id="ft-reconnect">0</div><div class="stat-label">断连</div></div>
+          <div class="stat-card"><div class="stat-val" id="ft-delay">0</div><div class="stat-label">延迟</div></div>
+        </div>
+        <div class="split-panel">
+          <div class="split-config">
+            <div class="card">
+              <div class="card-title">配置故障注入测试</div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">输入来源</label>
+                  <select class="form-select" id="ft-source" onchange="toggleFtSource()">
+                    <option value="testplan">使用测试计划用例</option>
+                    <option value="baseline">使用预设基准配置</option>
+                  </select>
+                </div>
+              </div>
+              <div id="ft-tp-row" class="form-row">
+                <div class="form-group"><label class="form-label">测试计划检查点</label>
+                  <div class="input-row">
+                    <input class="form-input" id="ft-tp-ckpt" placeholder="选择测试计划检查点">
+                    <button class="btn btn-sm" onclick="openCkptPicker('ft-tp-ckpt','tp')">选择</button>
+                  </div>
+                  <div class="ckpt-info-bar" id="ft-tp-ckpt-info"><div class="ci-name" id="ft-tp-ckpt-info-name"></div><div class="ci-stats" id="ft-tp-ckpt-info-stats"></div></div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">故障类型</label>
+                  <div class="ft-type-checks" id="ft-fault-type-group">
+                    <label class="ft-check"><input type="checkbox" value="crash" checked><span class="ft-check-label">💥 崩溃 (crash)</span><span class="ft-check-desc">强制删除 operator Pod</span></label>
+                    <label class="ft-check"><input type="checkbox" value="reconnect"><span class="ft-check-label">🔌 断连 (reconnect)</span><span class="ft-check-desc">重放过期集群状态</span></label>
+                    <label class="ft-check"><input type="checkbox" value="delay"><span class="ft-check-label">⏳ 延迟 (delay)</span><span class="ft-check-desc">跳过中间状态</span></label>
+                  </div>
+                </div>
+                <div class="form-group" style="max-width:100px"><label class="form-label">最大轮数</label>
+                  <input class="form-input" id="ft-max-rounds" type="number" value="50">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">故障管理器地址（自动转发，无需填写）</label>
+                  <input class="form-input" id="ft-fm-url" placeholder="留空则自动端口转发集群内服务">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">断点续传检查点（可选）</label>
+                  <div class="input-row">
+                    <input class="form-input" id="ft-ckpt" placeholder="留空则从头开始">
+                    <button class="btn btn-sm" onclick="openCkptPicker('ft-ckpt','fault')">选择</button>
+                  </div>
+                  <div class="ckpt-info-bar" id="ft-ckpt-info"><div class="ci-name" id="ft-ckpt-info-name"></div><div class="ci-stats" id="ft-ckpt-info-stats"></div></div>
+                </div>
+              </div>
+              <div class="btn-group">
+                <button class="btn btn-primary" id="ft-start-btn" onclick="startFaultTest()">开始故障注入测试</button>
+                <button class="btn btn-danger" onclick="stopCurrentJob('ft')">中断测试</button>
+              </div>
+            </div>
+          </div>
+          <div class="split-log">
+            <div class="card" id="ft-log-card">
+              <div class="log-header"><span class="card-title" style="margin:0">运行日志</span>
+                <div class="btn-group"><button class="btn btn-sm" onclick="viewCurrentTc('ft')">查看当前用例</button><button class="btn btn-sm" onclick="clearLog('ft-log')">清空</button><button class="btn btn-sm" onclick="toggleAutoScroll('ft',this)">自动滚动：开</button></div>
+              </div>
+              <div class="log-box" id="ft-log"><div style="color:var(--tx3);text-align:center;padding:40px 0">等待启动测试...</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 容器状态面板 (crash故障验证) ── -->
+        <div class="card" style="margin-top:16px" id="ft-pods-card">
+          <div class="log-header">
+            <span class="card-title" style="margin:0">Pod 实时状态</span>
+            <div class="btn-group">
+              <input class="form-input" id="ft-pods-ns" placeholder="命名空间（可选）" style="width:140px;font-size:12px">
+              <input class="form-input" id="ft-pods-sel" placeholder="标签过滤（可选）" style="width:160px;font-size:12px">
+              <input class="form-input" id="ft-pods-kc" placeholder="kubeconfig 路径（留空自动推断）" style="width:240px;font-size:12px">
+              <button class="btn btn-sm" onclick="loadPodStatus()">刷新</button>
+              <button class="btn btn-sm" id="ft-pods-auto-btn" onclick="togglePodAutoRefresh(this)">自动刷新：关</button>
+            </div>
+          </div>
+          <div id="ft-pods-body"><div class="empty" style="padding:24px 0">点击「刷新」查看当前 Pod 状态</div></div>
+        </div>
+
+        <!-- ── 故障事件面板 (reconnect/delay故障验证) ── -->
+        <div class="card" style="margin-top:16px" id="ft-roundlog-card">
+          <div class="log-header">
+            <span class="card-title" style="margin:0">状态差分日志</span>
+            <div class="btn-group">
+              <input class="form-input" id="ft-collector-url" placeholder="Collector URL（留空自动检测）" style="width:260px;font-size:12px">
+              <button class="btn btn-sm" onclick="autoDetectCollector()">自动检测</button>
+              <button class="btn btn-sm" onclick="loadFaultEvents()">刷新</button>
+              <button class="btn btn-sm" id="ft-rl-auto-btn" onclick="toggleRLAutoRefresh(this)">自动刷新：关</button>
+            </div>
+          </div>
+          <div id="ft-roundlog-body"><div class="empty" style="padding:24px 0">点击「刷新」查看代理故障注入记录</div></div>
+        </div>
+      </div>
+
+      <!-- ═══ 任务管理 ═══ -->
+      <div id="tab-tasks" class="panel">
+        <div class="flex-between" style="margin-bottom:16px">
+          <span class="card-title" style="margin:0">全部任务</span>
+          <button class="btn btn-sm" onclick="loadJobs()">刷新</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>编号</th><th>模式</th><th>项目</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody id="jobs-tbody"><tr><td colspan="6" class="empty">点击刷新加载任务列表</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card" id="job-log-card" style="display:none;margin-top:16px">
+          <div class="log-header"><span class="card-title" style="margin:0" id="job-log-title">任务日志</span>
+            <button class="btn btn-sm" onclick="document.getElementById('job-log-card').style.display='none'">关闭</button>
+          </div>
+          <div class="log-box" id="job-log-view"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modals ═══ -->
+
+<!-- Branch source code viewer modal -->
+<div class="src-modal-mask" id="src-modal" onclick="if(event.target===this)closeSrcModal()">
+  <div class="src-modal-box">
+    <div class="src-modal-hdr">
+      <div>
+        <div class="src-modal-title" id="src-modal-title">分支源码</div>
+        <div class="src-modal-meta" id="src-modal-meta"></div>
+      </div>
+      <button class="src-modal-close" onclick="closeSrcModal()">&times;</button>
+    </div>
+    <div class="src-modal-body"><pre class="src-code-block" id="src-modal-code">加载中…</pre></div>
+  </div>
+</div>
+
+<!-- CR fullscreen viewer modal -->
+<div class="cr-modal-mask" id="cr-modal" onclick="if(event.target===this)closeCrModal()">
+  <div class="cr-modal-box">
+    <div class="cr-modal-hdr">
+      <span class="cr-modal-title" id="cr-modal-title">CR 内容</span>
+      <button class="src-modal-close" onclick="closeCrModal()">&times;</button>
+    </div>
+    <div class="cr-modal-body"><pre class="cr-yaml" id="cr-modal-body"></pre></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="ckpt-modal" onclick="if(event.target===this)closeCkptModal()">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3 id="ckpt-modal-title">选择检查点</h3><button class="modal-close" onclick="closeCkptModal()">&times;</button></div>
+    <div class="modal-body" id="ckpt-modal-body"><div class="empty">加载中...</div></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="tc-modal" onclick="if(event.target===this)closeTcModal()">
+  <div class="modal-box" style="max-width:780px">
+    <div class="modal-hdr">
+      <h3 id="tc-modal-title">当前测试用例</h3>
+      <button class="modal-close" onclick="closeTcModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="tc-modal-meta" style="font-size:12px;color:var(--tx3);margin-bottom:10px"></div>
+      <pre id="tc-modal-cr" style="background:#0f172a;color:#94a3b8;padding:14px;border-radius:6px;overflow:auto;max-height:55vh;font-size:11px;line-height:1.6;margin:0"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════════════════════════════
+const S = {
+  project: null,
+  pstate: null, // persisted project state
+  jobs: {ea:null, tp:null, e2e:null, ft:null},
+  sse: {},
+  autoScroll: {ea:true, tp:true, e2e:true, ft:true},
+  startTimes: {e2e:null, ft:null},
+  durationTimers: {e2e:null, ft:null}
+};
+const STEPS = [
+  {key:'instrumentation', name:'程序插桩', desc:'默认已完成'},
+  {key:'relation_analysis', name:'关联分析', desc:'分析字段与代码分支的关联'},
+  {key:'test_plan', name:'测试计划生成', desc:'基于关联生成测试用例'},
+  {key:'e2e_test', name:'端到端自动化测试', desc:'验证不同输入下控制器行为', branch:true},
+  {key:'fault_test', name:'故障注入韧性测试', desc:'注入故障测试控制器恢复能力', branch:true}
+];
+// Viewer caches (reset on project change)
+let _iiData = null, _frData = null, _tvData = null;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Helpers
+// ══════════════════════════════════════════════════════════════════════════════
+function esc(s){return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function $(id){return document.getElementById(id)}
+function toast(msg,isErr){const e=document.getElementById('toast');e.textContent=msg;e.style.borderLeftColor=isErr?'var(--err)':'var(--ok)';e.style.borderLeft='3px solid';e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+function badgeFor(status){const m={completed:'badge-ok',running:'badge-run',error:'badge-err',idle:'badge-idle',stopped:'badge-stop',done:'badge-ok',pending:'badge-idle'};return m[status]||'badge-idle'}
+function statusText(s){const m={completed:'已完成',running:'运行中',error:'出错',idle:'未开始',stopped:'已中断',done:'已完成',pending:'等待中'};return m[s]||s}
+function fmtDuration(sec){if(!sec||sec<0)return'-';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);return h>0?`${h}时${m}分${s}秒`:m>0?`${m}分${s}秒`:`${s}秒`}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Project Management
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadProjects(){
+  const r=await fetch('/api/projects');
+  const data=await r.json();
+  const sel=$('proj-sel');
+  sel.innerHTML='<option value="">— 请选择项目 —</option>'+data.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+}
+
+function _clearProjectForms(){
+  // Checkpoint inputs
+  ['ea-ckpt','tp-ckpt','e2e-tp-ckpt','e2e-ckpt','ft-tp-ckpt','ft-ckpt','tv-ckpt'].forEach(id=>{
+    const el=$(id);if(el)el.value='';
+  });
+  // Checkpoint info bars
+  ['ea-ckpt-info-name','ea-ckpt-info-stats','tp-ckpt-info-name','tp-ckpt-info-stats',
+   'e2e-ckpt-info-name','e2e-ckpt-info-stats','ft-tp-ckpt-info-name','ft-tp-ckpt-info-stats',
+   'ft-ckpt-info-name','ft-ckpt-info-stats',
+   'tv-ckpt-info-name','tv-ckpt-info-stats'].forEach(id=>{
+    const el=$(id);if(el)el.textContent='';
+  });
+  // Clear logs
+  ['ea-log','tp-log','e2e-log','ft-log'].forEach(id=>{
+    const el=$(id);if(el)el.innerHTML='<div style="color:var(--tx3);text-align:center;padding:40px 0">等待启动测试...</div>';
+  });
+  $('ea-log-wrap')&&($('ea-log-wrap').style.display='none');
+  $('tp-log-wrap')&&($('tp-log-wrap').style.display='none');
+  // Reset viewer caches
+  _iiData = null; _frData = null; _tvData = null;
+  _srcInstrDir = ''; _srcProjectPath = '';
+  if($('ii-body'))$('ii-body').innerHTML='<div class="empty">展开后自动加载</div>';
+  if($('ii-meta'))$('ii-meta').innerHTML='';
+  if($('fr-body'))$('fr-body').innerHTML='<div class="empty">展开后自动加载</div>';
+  if($('tv-body'))$('tv-body').innerHTML='<div class="empty">请选择测试计划检查点后点击「加载」</div>';
+  if($('tv-stats'))$('tv-stats').style.display='none';
+  if($('tv-filter-bar'))$('tv-filter-bar').style.display='none';
+  // Close all view-cards
+  ['vc-ops','vc-instrument','vc-relations','vc-testplan'].forEach(vcId=>{
+    const body=$(vcId+'-body');const head=document.querySelector('#'+vcId+' .view-card-head');
+    if(body){body.classList.remove('open');}
+    if(head){head.classList.remove('open');}
+  });
+  // Reset job tracking and SSE
+  Object.keys(S.sse).forEach(k=>{try{S.sse[k].close()}catch(e){}});
+  S.sse={};
+  S.jobs={ea:null,tp:null,e2e:null,ft:null};
+  // Stop fault-panel auto-refresh timers
+  if(_podAutoTimer){clearInterval(_podAutoTimer);_podAutoTimer=null;const b=$('ft-pods-auto-btn');if(b)b.textContent='自动刷新：关';}
+  if(_rlAutoTimer){clearInterval(_rlAutoTimer);_rlAutoTimer=null;const b=$('ft-rl-auto-btn');if(b)b.textContent='自动刷新：关';}
+  // Reset pod state tracking
+  _podHistory.length=0; Object.keys(_podLastState).forEach(k=>delete _podLastState[k]); _opDeploy=null;
+  // Reset panel bodies
+  if($('ft-pods-body'))$('ft-pods-body').innerHTML='<div class="empty" style="padding:24px 0">点击「刷新」查看当前 Pod 状态</div>';
+  if($('ft-roundlog-body'))$('ft-roundlog-body').innerHTML='<div class="empty" style="padding:24px 0">点击「刷新」查看控制器与真实状态对比</div>';
+  if($('ft-collector-url'))$('ft-collector-url').value='';
+}
+
+async function onProjectChange(name){
+  if(!name){$('no-project').style.display='';$('project-content').style.display='none';$('pipeline-box').style.display='none';S.project=null;return}
+  _clearProjectForms();
+  S.project=name;
+  $('no-project').style.display='none';
+  $('project-content').style.display='';
+  $('pipeline-box').style.display='';
+  await loadProjectState(name);
+  renderPipeline();
+  renderOverviewStats();
+  switchTab('overview');
+}
+
+async function loadProjectState(name){
+  try{const r=await fetch('/api/projects/'+encodeURIComponent(name)+'/state');S.pstate=await r.json()}
+  catch(e){S.pstate=defaultState()}
+}
+
+function defaultState(){
+  return{steps:{instrumentation:{status:'completed'},relation_analysis:{status:'idle',checkpoint:''},test_plan:{status:'idle',checkpoint:''},e2e_test:{status:'idle',checkpoint:''},fault_test:{status:'idle',checkpoint:''}},stats:{total_duration_sec:0,test_cases_run:0,fault_injections:0,bugs_found:0}}
+}
+
+async function saveProjectState(){
+  if(!S.project||!S.pstate)return;
+  await fetch('/api/projects/'+encodeURIComponent(S.project)+'/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S.pstate)});
+}
+
+function updateStep(key,updates){
+  if(!S.pstate)return;
+  Object.assign(S.pstate.steps[key],updates);
+  saveProjectState();
+  renderPipeline();
+  renderOverviewStats();
+}
+
+function updateStats(updates){
+  if(!S.pstate)return;
+  Object.assign(S.pstate.stats,updates);
+  saveProjectState();
+  renderOverviewStats();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Pipeline Rendering
+// ══════════════════════════════════════════════════════════════════════════════
+function renderPipeline(){
+  const st=S.pstate?S.pstate.steps:{};
+  // Sidebar pipeline
+  let html='';
+  STEPS.forEach((step,i)=>{
+    const ss=st[step.key]||{status:'idle'};
+    const cls=ss.status==='completed'?'done':ss.status==='running'?'running':ss.status==='error'?'error':'';
+    const icon=ss.status==='completed'?'✓':ss.status==='running'?'⟳':ss.status==='error'?'✗':(i+1);
+    if(step.branch){
+      html+=`<div class="pipe-branch"><div class="pipe-branch-line"></div>
+        <div class="pipe-step ${cls}" onclick="onStepClick('${step.key}')">
+          <div class="pipe-dot">${icon}</div>
+          <div><div class="pipe-name">${step.name}</div><div class="pipe-sub">${statusText(ss.status)}</div></div>
+        </div></div>`;
+    } else {
+      if(i>0)html+='<div class="pipe-line"></div>';
+      html+=`<div class="pipe-step ${cls}" onclick="onStepClick('${step.key}')">
+        <div class="pipe-dot">${icon}</div>
+        <div><div class="pipe-name">${step.name}</div><div class="pipe-sub">${statusText(ss.status)}</div></div>
+      </div>`;
+    }
+  });
+  $('pipeline-steps').innerHTML=html;
+
+  // Overview pipeline (with action buttons)
+  let ohtml='<div style="display:flex;flex-direction:column;gap:8px">';
+  STEPS.forEach((step,i)=>{
+    const ss=st[step.key]||{status:'idle'};
+    const bgColor=ss.status==='completed'?'var(--ok-l)':ss.status==='running'?'var(--acc-l)':ss.status==='error'?'var(--err-l)':'#f8fafc';
+    const borderColor=ss.status==='completed'?'var(--ok)':ss.status==='running'?'var(--acc)':ss.status==='error'?'var(--err)':'var(--bdr)';
+    const ml=step.branch?'32px':'0';
+    ohtml+=`<div style="display:flex;align-items:center;gap:12px;margin-left:${ml}">
+      ${step.branch?'<div style="color:var(--tx3);font-size:12px">└</div>':''}
+      <div style="flex:1;background:${bgColor};border:1px solid ${borderColor};border-radius:var(--rs);padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-weight:600;font-size:13px">${step.name}</div><div style="font-size:11px;color:var(--tx2)">${step.desc}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${badgeFor(ss.status)}">${statusText(ss.status)}</span>
+          ${ss.status!=='running'?`<button class="btn btn-sm" onclick="toggleStepStatus('${step.key}')">${ss.status==='completed'?'取消完成':'标记完成'}</button>`:''}
+        </div>
+      </div>
+    </div>`;
+    if(i<2)ohtml+='<div style="margin-left:14px;width:2px;height:8px;background:var(--bdr)"></div>';
+    if(i===2)ohtml+='<div style="margin-left:14px;display:flex;gap:4px;align-items:center"><div style="width:2px;height:8px;background:var(--bdr)"></div></div>';
+  });
+  ohtml+='</div>';
+  $('overview-pipeline').innerHTML=ohtml;
+}
+
+function onStepClick(key){
+  if(key==='e2e_test'){switchTab('e2e');return}
+  if(key==='fault_test'){switchTab('fault');return}
+  switchTab('overview');
+  const vcMap={
+    instrumentation:'vc-instrument',
+    relation_analysis:'vc-relations',
+    test_plan:'vc-testplan'
+  };
+  const vcId=vcMap[key];
+  if(vcId){
+    const body=$(vcId+'-body');
+    if(!body.classList.contains('open')){
+      const cbMap={
+        'vc-instrument':loadInstrumentInfo,
+        'vc-relations':loadRelations
+      };
+      toggleViewCard(vcId, cbMap[vcId]);
+    }
+    setTimeout(()=>$(vcId).scrollIntoView({behavior:'smooth',block:'start'}),80);
+  }
+}
+
+function toggleStepStatus(key){
+  const ss=S.pstate.steps[key];
+  ss.status=ss.status==='completed'?'idle':'completed';
+  saveProjectState();renderPipeline();renderOverviewStats();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Overview Stats
+// ══════════════════════════════════════════════════════════════════════════════
+function renderOverviewStats(){
+  if(!S.pstate)return;
+  const st=S.pstate.stats;
+  const stepsData=S.pstate.steps;
+  const completedCount=Object.values(stepsData).filter(s=>s.status==='completed').length;
+  $('overview-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${completedCount}/${STEPS.length}</div><div class="stat-label">流程完成度</div></div>
+    <div class="stat-card"><div class="stat-val">${fmtDuration(st.total_duration_sec)}</div><div class="stat-label">累计测试用时</div></div>
+    <div class="stat-card"><div class="stat-val">${st.test_cases_run}</div><div class="stat-label">已执行用例</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--err)">${st.bugs_found}</div><div class="stat-label">检测到问题</div></div>`;
+  $('ss-duration').textContent=fmtDuration(st.total_duration_sec);
+  $('ss-cases').textContent=st.test_cases_run;
+  $('ss-faults').textContent=st.fault_injections;
+  $('ss-bugs').textContent=st.bugs_found;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Tab switching
+// ══════════════════════════════════════════════════════════════════════════════
+const _ALL_TABS=['overview','e2e','fault','tasks'];
+function switchTab(name){
+  document.querySelectorAll('.tab-bar .tab').forEach((t,i)=>{
+    t.classList.toggle('active',_ALL_TABS[i]===name);
+  });
+  document.querySelectorAll('.main .panel').forEach(p=>p.classList.remove('active'));
+  $('tab-'+name).classList.add('active');
+  if(name==='tasks')loadJobs();
+}
+
+function toggleViewCard(vcId, onOpenCb){
+  const head=document.querySelector('#'+vcId+' .view-card-head');
+  const body=$(vcId+'-body');
+  const isOpen=body.classList.toggle('open');
+  if(head)head.classList.toggle('open',isOpen);
+  if(isOpen && onOpenCb) onOpenCb();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Instrument Info Viewer
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadInstrumentInfo() {
+  if (!S.project) { $('ii-body').innerHTML = '<div class="empty">请先选择项目</div>'; return; }
+  $('ii-body').innerHTML = '<div class="empty">加载中…</div>';
+  $('ii-meta').innerHTML = '';
+  $('ii-count').textContent = '';
+  // Get instrument_info.json path from instruments API
+  const r = await fetch('/api/instruments');
+  const data = await r.json();
+  const op = data.find(d => d.name === S.project);
+  if (!op || !op.has_instrument_info) {
+    $('ii-body').innerHTML = '<div class="empty">未找到 instrument_info.json（需在插桩目录中）</div>'; return;
+  }
+  try {
+    const r2 = await fetch('/api/instrument_info?path=' + encodeURIComponent(op.instrument_info));
+    _iiData = await r2.json();
+  } catch(e) {
+    $('ii-body').innerHTML = `<div class="empty">加载失败: ${esc(String(e))}</div>`; return;
+  }
+  // Render meta row
+  const meta = _iiData.meta || {};
+  const metaItems = Object.entries(meta).filter(([k])=>!['branch_points'].includes(k));
+  $('ii-meta').innerHTML = `
+    <div class="ii-meta-item"><b>${_iiData.total_branches}</b> 分支点</div>
+    <div class="ii-meta-item"><b>${_iiData.total_files}</b> 源文件</div>
+    ${metaItems.map(([k,v])=>`<div class="ii-meta-item"><b>${esc(k)}</b>: ${esc(String(v))}</div>`).join('')}`;
+  renderInstrumentInfo('');
+}
+
+function renderInstrumentInfo(q) {
+  if (!_iiData) return;
+  const files = _iiData.files || [];
+  const ql = q.toLowerCase();
+  let matchedFiles = 0, matchedBranches = 0;
+  const html = files.map((f, fi) => {
+    const branches = (f.branches || []).filter(b => {
+      if (!ql) return true;
+      if (f.file.toLowerCase().includes(ql)) return true;
+      if (String(b.idx).includes(ql)) return true;
+      if ((b.line||'').toString().includes(ql)) return true;
+      return b.fmts.some(fmt => fmt.toLowerCase().includes(ql));
+    });
+    if (!branches.length) return '';
+    matchedFiles++;
+    matchedBranches += branches.length;
+    const fid = 'ii-f-' + fi;
+    const brHtml = branches.map(b => {
+      const fmtHint = b.fmts[0] || '';
+      return `
+      <div class="ii-branch-row">
+        <span class="ii-bi src-branch-btn" title="点击查看源码" data-bi="${b.idx}" data-fmt="${esc(fmtHint)}" onclick="_clickBranchSrc(this)">b[${b.idx}]</span>
+        ${b.line ? `<span class="ii-line">L${esc(String(b.line))}</span>` : ''}
+        <div class="ii-fmts">${b.fmts.length ? b.fmts.map(fmt=>`<span class="ii-fmt" title="${esc(fmt)}">${esc(fmt)}</span>`).join('') : '<span style="color:var(--tx3);font-size:11px">无表达式</span>'}</div>
+      </div>`;
+    }).join('');
+    return `<div class="ii-file-group">
+      <div class="ii-file-head" onclick="document.getElementById('${fid}').classList.toggle('open')">
+        <span class="ii-file-path">${esc(f.file||'(未知文件)')}</span>
+        <span class="ii-file-cnt">${branches.length} 分支 ▾</span>
+      </div>
+      <div class="ii-file-body" id="${fid}">${brHtml}</div>
+    </div>`;
+  }).join('');
+  $('ii-count').textContent = ql ? `匹配 ${matchedBranches} 分支 / ${matchedFiles} 文件` : `共 ${_iiData.total_branches} 分支 / ${_iiData.total_files} 文件`;
+  $('ii-body').innerHTML = html || '<div class="empty">无匹配结果</div>';
+  // Auto-expand if filtered and few results
+  if (ql && matchedFiles <= 5) {
+    document.querySelectorAll('.ii-file-body').forEach(el => el.classList.add('open'));
+  }
+}
+
+function filterInstrumentInfo() {
+  renderInstrumentInfo($('ii-search').value.trim());
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Field Relations Viewer
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadRelations() {
+  if (!S.project) { $('fr-body').innerHTML = '<div class="empty">请先选择项目</div>'; return; }
+  $('fr-body').innerHTML = '<div class="empty">加载中…</div>';
+  $('fr-count').textContent = '';
+  const r = await fetch('/api/instruments');
+  const data = await r.json();
+  const op = data.find(d => d.name === S.project);
+  if (!op || !op.has_instrument_info || !op.has_field_relations) {
+    $('fr-body').innerHTML = '<div class="empty">未找到 instrument_info.json 或 field_relations.json</div>'; return;
+  }
+  try {
+    const url = `/api/branch_relations?instrument_path=${encodeURIComponent(op.instrument_info)}&relations_path=${encodeURIComponent(op.field_relations)}`;
+    const r2 = await fetch(url);
+    _frData = await r2.json();
+  } catch(e) {
+    $('fr-body').innerHTML = `<div class="empty">加载失败: ${esc(String(e))}</div>`; return;
+  }
+  renderRelations('');
+}
+
+function renderRelations(q) {
+  if (!_frData) return;
+  const entries = Object.values(_frData);
+  const ql = q.toLowerCase();
+  let shown = 0;
+  const html = entries.map((e, i) => {
+    const fields = e.fields || [];
+    if (ql) {
+      const fmtMatch = (e.fmt||'').toLowerCase().includes(ql);
+      const biMatch = String(e.idx).includes(ql);
+      const fileMatch = (e.file||'').toLowerCase().includes(ql);
+      const fieldMatch = fields.some(f =>
+        (f.path||'').toLowerCase().includes(ql) ||
+        (f.vars||[]).some(v => v.toLowerCase().includes(ql))
+      );
+      if (!fmtMatch && !biMatch && !fileMatch && !fieldMatch) return '';
+    }
+    shown++;
+    const bid = 'fr-b-' + i;
+    const fieldHtml = fields.length
+      ? fields.map(f => `<div class="fr-field-item">
+          <div class="fr-field-path">${esc(f.path)}</div>
+          <div>${f.vars && f.vars.length
+            ? f.vars.map(v=>`<span class="fr-var">${esc(v)}</span>`).join('')
+            : '<span class="fr-no-vars">无变量映射</span>'}</div>
+        </div>`).join('')
+      : '<div class="fr-field-item"><span class="fr-no-vars">该分支无属性字段映射</span></div>';
+    const fmtText = e.fmt || '';
+    return `<div class="fr-branch-row">
+      <div class="fr-branch-head" onclick="document.getElementById('${bid}').classList.toggle('open')">
+        <span class="fr-bi src-branch-btn" title="点击查看源码" data-bi="${e.idx}" data-fmt="${esc(fmtText)}" onclick="event.stopPropagation();_clickBranchSrc(this)">b[${e.idx}]</span>
+        <span class="fr-fmt" title="${esc(e.fmt)}">${esc(e.fmt)||'<em style="color:var(--tx3)">无表达式</em>'}</span>
+        <span class="fr-field-cnt">${fields.length} 字段 ▾</span>
+      </div>
+      <div class="fr-branch-body" id="${bid}">${fieldHtml}</div>
+    </div>`;
+  }).join('');
+  $('fr-count').textContent = ql ? `匹配 ${shown} / ${entries.length} 分支` : `共 ${entries.length} 分支`;
+  $('fr-body').innerHTML = html || '<div class="empty">无匹配结果</div>';
+  if (ql && shown <= 10) {
+    document.querySelectorAll('.fr-branch-body').forEach(el => el.classList.add('open'));
+  }
+}
+
+function filterRelations() {
+  renderRelations($('fr-search').value.trim());
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Testplan Viewer
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadTestplanViewer() {
+  const path = $('tv-ckpt').value.trim();
+  if (!path) { toast('请先选择测试计划检查点', true); return; }
+  $('tv-body').innerHTML = '<div class="empty">加载中…</div>';
+  $('tv-stats').style.display = 'none';
+  $('tv-filter-bar').style.display = 'none';
+  try {
+    const r = await fetch('/api/ckpt/testplan?path=' + encodeURIComponent(path));
+    if (!r.ok) { $('tv-body').innerHTML = `<div class="empty">加载失败 (${r.status})</div>`; return; }
+    _tvData = await r.json();
+  } catch(e) {
+    $('tv-body').innerHTML = `<div class="empty">加载失败: ${esc(String(e))}</div>`; return;
+  }
+  // Stats bar
+  const d = _tvData;
+  const brPct = d.total_branches ? Math.round(100*d.covered_branches/d.total_branches) : 0;
+  const tgtPct = d.total_targets ? Math.round(100*d.resolved_targets/d.total_targets) : 0;
+  $('tv-stats').innerHTML = `
+    <div class="tp-stat"><div class="tp-stat-val">${d.total_tc}</div><div class="tp-stat-lbl">测试用例</div></div>
+    <div class="tp-stat"><div class="tp-stat-val">${d.covered_branches}<span style="font-size:13px;color:var(--tx3)">/${d.total_branches}</span></div><div class="tp-stat-lbl">已覆盖分支 (${brPct}%)</div></div>
+    <div class="tp-stat"><div class="tp-stat-val">${d.resolved_targets}<span style="font-size:13px;color:var(--tx3)">/${d.total_targets}</span></div><div class="tp-stat-lbl">目标已解决 (${tgtPct}%)</div></div>
+    <div class="tp-stat"><div class="tp-stat-val">${d.round_n||0}</div><div class="tp-stat-lbl">生成轮次</div></div>`;
+  $('tv-stats').style.display = '';
+  $('tv-filter-bar').style.display = '';
+  $('tv-search').value = '';
+  renderTestplanTCs('');
+}
+
+function renderTestplanTCs(q) {
+  if (!_tvData) return;
+  const tcs = _tvData.testcases || [];
+  const ql = q.toLowerCase();
+  let shown = 0;
+  const html = tcs.map((tc, i) => {
+    if (ql) {
+      const idMatch = tc.id.toLowerCase().includes(ql);
+      const brMatch = (tc.involved_branches||[]).some(b =>
+        String(b.bi).includes(ql) || (b.fmt||'').toLowerCase().includes(ql)
+      );
+      if (!idMatch && !brMatch) return '';
+    }
+    shown++;
+    const tid = 'tv-tc-' + i;
+    const brsHtml = (tc.involved_branches||[]).map(b => {
+      const fmtShort = b.fmt ? b.fmt.substring(0,55)+(b.fmt.length>55?'…':'') : '';
+      const fmtFull = b.fmt || '';
+      return `<span class="tc-bi-tag src-branch-btn" title="点击查看分支源码" data-bi="${b.bi}" data-fmt="${esc(fmtFull)}" onclick="_clickBranchSrc(this)"><b>b[${b.bi}]</b>${fmtShort?' '+esc(fmtShort):''}</span>`;
+    }).join('');
+    const hasCr = tc.cr && tc.cr.trim();
+    const crHtml = hasCr ? `
+      <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--tx3)">CR 内容</span>
+        <button class="btn btn-sm" style="font-size:11px;padding:2px 8px" onclick="openCrModal('${esc(tc.id)}',_tvData.testcases[${i}].cr)">全屏展示</button>
+      </div>
+      <pre class="tc-cr-pre" style="max-height:120px">${_hlYaml(tc.cr)}</pre>` : '';
+    return `<div class="tc-row">
+      <div class="tc-row-head" onclick="document.getElementById('${tid}').classList.toggle('open')">
+        <span class="tc-id">TC-${esc(tc.id)}</span>
+        ${tc.has_new_branch ? '<span class="tc-new">新分支</span>' : ''}
+        <span class="tc-freq" title="执行频率">频率 ${tc.frequency}</span>
+        <span class="tc-br-cnt">${tc.branch_count} 分支 ▾</span>
+      </div>
+      <div class="tc-row-body" id="${tid}">
+        <div style="margin-bottom:6px">${brsHtml||'<span style="color:var(--tx3);font-size:12px">无分支信息</span>'}</div>
+        ${crHtml}
+      </div>
+    </div>`;
+  }).join('');
+  const truncNote = _tvData.truncated ? `<div style="text-align:center;font-size:12px;color:var(--warn);padding:8px">⚠ 仅显示前 ${tcs.length} 条，共 ${_tvData.total_tc} 条</div>` : '';
+  $('tv-count').textContent = ql ? `匹配 ${shown} / ${tcs.length} 条` : `共 ${tcs.length} 条用例`;
+  $('tv-body').innerHTML = (html || '<div class="empty">无匹配结果</div>') + truncNote;
+}
+
+function filterTestplanTCs() {
+  renderTestplanTCs($('tv-search').value.trim());
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Branch Source Viewer
+// ══════════════════════════════════════════════════════════════════════════════
+let _srcInstrDir = ''; // set when instruments data is loaded
+let _srcProjectPath = '';
+
+async function _ensureSrcPaths() {
+  if (_srcInstrDir && _srcProjectPath) return true;
+  if (!S.project) return false;
+  try {
+    const r = await fetch('/api/instruments');
+    const data = await r.json();
+    const op = data.find(d => d.name === S.project);
+    if (!op) return false;
+    _srcInstrDir = op.path || '';
+    _srcProjectPath = op.project_path || '';
+    return !!_srcInstrDir;
+  } catch(e) { return false; }
+}
+
+async function viewBranchSource(bi, fmtHint) {
+  if (!await _ensureSrcPaths()) { toast('未找到项目插桩路径', true); return; }
+  $('src-modal-title').textContent = `分支 b[${bi}]`;
+  $('src-modal-meta').textContent = fmtHint ? `条件: ${fmtHint}` : '';
+  $('src-modal-code').innerHTML = '<span style="color:#475569">加载中…</span>';
+  $('src-modal').classList.add('open');
+  try {
+    const url = `/api/branch_source?instrument_dir=${encodeURIComponent(_srcInstrDir)}&branch_index=${bi}&project_path=${encodeURIComponent(_srcProjectPath)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok || !d.source) {
+      $('src-modal-code').innerHTML = '<span style="color:#f87171">未能获取源码上下文（libinstrument.so 不可用或路径不匹配）</span>'; return;
+    }
+    $('src-modal-code').innerHTML = _renderSourceContext(d.source);
+  } catch(e) {
+    $('src-modal-code').innerHTML = `<span style="color:#f87171">请求失败: ${esc(String(e))}</span>`;
+  }
+}
+
+function _renderSourceContext(src) {
+  // src is plain text; look for a marker line like ">>> " or lines with branch context
+  // Render with line numbers, highlight the "current" line marked with >>> or >>>
+  const lines = src.split('\n');
+  return lines.map(line => {
+    const isCurrent = line.startsWith('>>>') || line.includes('// <<< branch');
+    const escaped = esc(line);
+    if (isCurrent) return `<span class="hl-current">${escaped}</span>`;
+    return escaped + '\n';
+  }).join('');
+}
+
+function closeSrcModal() { $('src-modal').classList.remove('open'); }
+function _clickBranchSrc(el) {
+  const bi = parseInt(el.dataset.bi);
+  const fmt = el.dataset.fmt || '';
+  viewBranchSource(bi, fmt);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// YAML Syntax Highlighter + CR Modal
+// ══════════════════════════════════════════════════════════════════════════════
+function _hlYaml(text) {
+  // Simple line-by-line YAML highlighter
+  return text.split('\n').map(line => {
+    const e = esc(line);
+    // Comment
+    if (/^\s*#/.test(line)) return `<span class="y-comment">${e}</span>`;
+    // Document separator
+    if (/^---/.test(line)) return `<span class="y-sep">${e}</span>`;
+    // Key: value
+    const m = line.match(/^(\s*)([-\w\.\"]+)(\s*:\s*)(.*)?$/);
+    if (m) {
+      const [, indent, key, colon, val] = m;
+      const eKey = `<span class="y-key">${esc(key)}</span>`;
+      let eVal = '';
+      if (val !== undefined && val !== '') {
+        const vs = val.trim();
+        if (/^(true|false)$/i.test(vs)) eVal = `<span class="y-bool">${esc(val)}</span>`;
+        else if (/^~$/.test(vs) || /^null$/i.test(vs)) eVal = `<span class="y-null">${esc(val)}</span>`;
+        else if (/^-?[0-9]/.test(vs)) eVal = `<span class="y-num">${esc(val)}</span>`;
+        else eVal = `<span class="y-str">${esc(val)}</span>`;
+      }
+      return esc(indent) + eKey + esc(colon) + eVal;
+    }
+    // List item
+    const ml = line.match(/^(\s*- )(.*)?$/);
+    if (ml) {
+      const vs = (ml[2]||'').trim();
+      let eVal = esc(ml[2]||'');
+      if (/^(true|false)$/i.test(vs)) eVal = `<span class="y-bool">${esc(ml[2])}</span>`;
+      else if (/^-?[0-9]/.test(vs)) eVal = `<span class="y-num">${esc(ml[2])}</span>`;
+      return esc(ml[1]) + eVal;
+    }
+    return e;
+  }).join('\n');
+}
+
+function openCrModal(tcId, crText) {
+  $('cr-modal-title').textContent = tcId ? `TC-${tcId} — CR 内容` : 'CR 内容';
+  $('cr-modal-body').innerHTML = _hlYaml(crText);
+  $('cr-modal').classList.add('open');
+}
+function closeCrModal() { $('cr-modal').classList.remove('open'); }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Pod Status Panel (crash fault verification)
+// ══════════════════════════════════════════════════════════════════════════════
+let _podAutoTimer = null;
+// Pod change history: [{ts, name, namespace, oldPhase, newPhase, restarts}]
+const _podHistory = [];
+// Last known pod state: key "ns/name" → {phase, restarts}
+const _podLastState = {};
+// Operator deploy info from API: {namespace, label_selector, deploy_name}
+let _opDeploy = null;
+
+async function loadPodStatus() {
+  const ns = ($('ft-pods-ns').value || '').trim();
+  const sel = ($('ft-pods-sel').value || '').trim();
+  const kc = ($('ft-pods-kc').value || '').trim();
+  const el = $('ft-pods-body');
+  if (!el.querySelector('table')) el.innerHTML = '<div class="empty">加载中…</div>';
+  try {
+    let url = '/api/pods?';
+    if (ns) url += `namespace=${encodeURIComponent(ns)}&`;
+    if (sel) url += `label_selector=${encodeURIComponent(sel)}&`;
+    if (kc) url += `kubeconfig=${encodeURIComponent(kc)}&`;
+    if (S.project) url += `project=${encodeURIComponent(S.project)}&`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!r.ok) { el.innerHTML = `<div class="empty" style="color:var(--err)">${esc(d.detail||'kubectl 调用失败')}</div>`; return; }
+    // Cache operator deploy info returned alongside pods
+    if (d.operator_deploy && (d.operator_deploy.namespace || d.operator_deploy.deploy_name)) {
+      _opDeploy = d.operator_deploy;
+    }
+    _trackPodChanges(d.pods || []);
+    renderPodTable(d.pods || []);
+  } catch(e) {
+    el.innerHTML = `<div class="empty" style="color:var(--err)">请求失败: ${esc(String(e))}</div>`;
+  }
+}
+
+function _isOperatorPod(pod) {
+  // Primary: exact match using operator Deployment namespace from config.deploy operator:true step
+  if (_opDeploy) {
+    const nsMatch = _opDeploy.namespace && pod.namespace === _opDeploy.namespace;
+    if (nsMatch) {
+      // If we also have a label selector, check pod labels match
+      if (_opDeploy.label_selector) {
+        const podLabels = pod.labels || {};
+        const allMatch = _opDeploy.label_selector.split(',').every(pair => {
+          const [k, v] = pair.split('=');
+          return podLabels[k] === v;
+        });
+        return allMatch;
+      }
+      return true;
+    }
+    return false;
+  }
+  // Fallback: name-based heuristic only if no operator deploy info yet
+  const name = pod.name.toLowerCase();
+  return name.includes('operator') || name.includes('controller-manager');
+}
+
+function _trackPodChanges(pods) {
+  const now = new Date().toLocaleTimeString('zh-CN');
+  const seenKeys = new Set();
+  pods.forEach(p => {
+    const key = `${p.namespace}/${p.name}`;
+    seenKeys.add(key);
+    const maxRestarts = Math.max(0, ...(p.containers||[]).map(c=>c.restartCount||0));
+    const prev = _podLastState[key];
+    if (prev) {
+      const changed = prev.phase !== p.phase || prev.restarts !== maxRestarts;
+      if (changed) {
+        _podHistory.unshift({
+          ts: now, name: p.name, namespace: p.namespace,
+          oldPhase: prev.phase, newPhase: p.phase,
+          oldRestarts: prev.restarts, newRestarts: maxRestarts,
+          isOp: _isOperatorPod(p),
+        });
+        if (_podHistory.length > 100) _podHistory.pop();
+      }
+    } else {
+      // Newly appeared pod
+      _podHistory.unshift({
+        ts: now, name: p.name, namespace: p.namespace,
+        oldPhase: null, newPhase: p.phase,
+        oldRestarts: 0, newRestarts: maxRestarts,
+        isOp: _isOperatorPod(p), event: 'created',
+      });
+      if (_podHistory.length > 100) _podHistory.pop();
+    }
+    _podLastState[key] = {phase: p.phase, restarts: maxRestarts, pod: p};
+  });
+  // Detect deleted pods
+  Object.keys(_podLastState).forEach(key => {
+    if (!seenKeys.has(key)) {
+      const prev = _podLastState[key];
+      const [ns, ...nameParts] = key.split('/');
+      const name = nameParts.join('/');
+      _podHistory.unshift({
+        ts: now, name, namespace: ns,
+        oldPhase: prev.phase, newPhase: 'Deleted',
+        oldRestarts: prev.restarts, newRestarts: 0,
+        isOp: prev.pod ? _isOperatorPod(prev.pod) : false, event: 'deleted',
+      });
+      if (_podHistory.length > 100) _podHistory.pop();
+      delete _podLastState[key];
+    }
+  });
+  _renderPodHistory();
+}
+
+function _renderPodHistory() {
+  const el = $('ft-pod-history-body');
+  if (!el) return;
+  if (!_podHistory.length) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:6px 0">暂无变化记录</div>'; return; }
+  el.innerHTML = _podHistory.map(h => {
+    const nameColor = h.isOp ? 'color:var(--acc);font-weight:700' : 'color:var(--tx2)';
+    const opTag = h.isOp ? '<span style="font-size:10px;background:var(--acc-l);color:var(--acc);padding:1px 5px;border-radius:3px;margin-left:4px">Operator</span>' : '';
+    let eventBadge = '';
+    let phaseChange = '';
+    if (h.event === 'deleted') {
+      eventBadge = '<span style="font-size:10px;background:var(--err-l);color:var(--err);padding:1px 5px;border-radius:3px">已删除</span>';
+      phaseChange = `<span style="color:var(--err)">Deleted</span>`;
+    } else if (h.event === 'created') {
+      eventBadge = '<span style="font-size:10px;background:var(--ok-l);color:var(--ok);padding:1px 5px;border-radius:3px">新建</span>';
+      phaseChange = `<span class="pod-phase-${h.newPhase}">${esc(h.newPhase)}</span>`;
+    } else {
+      phaseChange = h.oldPhase !== h.newPhase
+        ? `<span style="color:var(--tx3)">${esc(h.oldPhase)}</span> → <span class="pod-phase-${h.newPhase}">${esc(h.newPhase)}</span>`
+        : `<span class="pod-phase-${h.newPhase}">${esc(h.newPhase)}</span>`;
+    }
+    const restartChange = h.newRestarts > (h.oldRestarts||0)
+      ? ` <span class="pod-restart" style="font-size:11px">↺ 重启 ${h.oldRestarts}→${h.newRestarts}</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
+      <span style="color:var(--tx3);flex-shrink:0;font-size:11px">${esc(h.ts)}</span>
+      ${eventBadge}
+      <span style="${nameColor}">${esc(h.name)}${opTag}</span>
+      <span style="color:var(--tx3);font-size:11px">${esc(h.namespace)}</span>
+      <span>${phaseChange}${restartChange}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderPodTable(pods) {
+  const el = $('ft-pods-body');
+  if (!pods.length) { el.innerHTML = '<div class="empty">未找到 Pod（检查命名空间或标签过滤条件）</div>'; return; }
+  // Sort: operator pods first
+  const sorted = [...pods].sort((a,b) => (_isOperatorPod(b)?1:0) - (_isOperatorPod(a)?1:0));
+  let rows = sorted.map(p => {
+    const isOp = _isOperatorPod(p);
+    const rowStyle = isOp ? 'background:linear-gradient(90deg,rgba(79,70,229,.04) 0,transparent 100%)' : '';
+    const nameCell = isOp
+      ? `<b style="color:var(--acc)">${esc(p.name)}</b> <span style="font-size:10px;background:var(--acc-l);color:var(--acc);padding:1px 5px;border-radius:3px">Operator</span>`
+      : `<span style="color:var(--tx2)">${esc(p.name)}</span>`;
+    const phaseClass = `pod-phase-${p.phase}`;
+    const csHtml = (p.containers || []).map(cs => {
+      let cls = cs.ready ? 'ready' : (cs.state === 'terminated' ? 'err' : 'warn');
+      const restartBadge = cs.restartCount > 0 ? ` <span class="pod-restart">↺${cs.restartCount}</span>` : '';
+      const stateLabel = cs.state !== 'running' ? ` <span style="font-size:10px;color:var(--tx3)">${esc(cs.state)}${cs.reason?' ('+esc(cs.reason)+')':''}</span>` : '';
+      return `<span class="pod-cs ${cls}">${esc(cs.name)}${restartBadge}${stateLabel}</span>`;
+    }).join('');
+    const since = p.startTime ? new Date(p.startTime).toLocaleString('zh-CN',{hour12:false}) : '-';
+    return `<tr style="${rowStyle}">
+      <td>${nameCell}</td>
+      <td>${esc(p.namespace)}</td>
+      <td><span class="${phaseClass}">${esc(p.phase)}</span></td>
+      <td>${csHtml||'<span style="color:var(--tx3)">—</span>'}</td>
+      <td style="color:var(--tx3)">${esc(p.nodeName||'-')}</td>
+      <td style="color:var(--tx3);font-size:11px">${esc(since)}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `
+    <table class="pod-table">
+      <thead><tr><th>Pod 名称</th><th>命名空间</th><th>阶段</th><th>容器状态</th><th>节点</th><th>启动时间</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="pod-refresh-ts">更新于 ${new Date().toLocaleTimeString('zh-CN')}</div>
+    <div style="margin-top:10px;padding:8px 12px;background:#f8fafc;border-radius:var(--rs);border:1px solid var(--bdr)">
+      <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:4px">📋 Pod 变化历史</div>
+      <div id="ft-pod-history-body"><div style="color:var(--tx3);font-size:12px;padding:6px 0">暂无变化记录</div></div>
+    </div>`;
+  _renderPodHistory();
+}
+
+function togglePodAutoRefresh(btn) {
+  if (_podAutoTimer) {
+    clearInterval(_podAutoTimer); _podAutoTimer = null;
+    btn.textContent = '自动刷新：关';
+  } else {
+    loadPodStatus();
+    _podAutoTimer = setInterval(loadPodStatus, 3000);
+    btn.textContent = '自动刷新：开';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Round Log Diff Panel (reconnect/delay fault verification)
+// ══════════════════════════════════════════════════════════════════════════════
+let _rlAutoTimer = null;
+
+async function autoDetectCollector() {
+  const kc = ($('ft-pods-kc').value || '').trim();
+  const el = $('ft-collector-url');
+  el.placeholder = '检测中…';
+  try {
+    let url = '/api/collector_url?';
+    if (S.project) url += `project=${encodeURIComponent(S.project)}&`;
+    if (kc) url += `kubeconfig=${encodeURIComponent(kc)}&`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.url) {
+      el.value = d.url;
+      toast(`已检测到 Collector: ${d.url} (${d.source})`);
+    } else {
+      toast(`无法自动检测 Collector URL: ${d.error||'未知原因'}`, true);
+    }
+  } catch(e) {
+    toast(`检测失败: ${esc(String(e))}`, true);
+  } finally {
+    el.placeholder = 'Collector URL（留空自动检测）';
+  }
+}
+
+async function loadFaultEvents() {
+  const collectorUrl = ($('ft-collector-url').value || '').trim();
+  const kc = ($('ft-pods-kc').value || '').trim();
+  const el = $('ft-roundlog-body');
+  el.innerHTML = '<div class="empty">加载中…</div>';
+  try {
+    let url = `/api/fault/events?n=50`;
+    if (collectorUrl) url += `&collector_url=${encodeURIComponent(collectorUrl)}`;
+    if (S.project) url += `&project=${encodeURIComponent(S.project)}`;
+    if (kc) url += `&kubeconfig=${encodeURIComponent(kc)}`;
+    const r = await fetch(url);
+    if (!r.ok) {
+      const d = await r.json().catch(()=>({}));
+      el.innerHTML = `<div class="empty" style="color:var(--err)">无法连接数据采集器（${esc(d.detail||r.status)}）<br><span style="font-size:11px;color:var(--tx3)">提示：选择项目后点「刷新」可自动通过 port-forward 连接，或点「自动检测」填入 Collector URL</span></div>`;
+      return;
+    }
+    const d = await r.json();
+    renderFaultEvents(d.entries || []);
+  } catch(e) {
+    el.innerHTML = `<div class="empty" style="color:var(--err)">请求失败: ${esc(String(e))}</div>`;
+  }
+}
+
+function renderFaultEvents(entries) {
+  const el = $('ft-roundlog-body');
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty">暂无故障事件（代理注入故障时将自动上报）</div>';
+    return;
+  }
+  let html = '';
+  entries.forEach((ev, i) => {
+    const ts = ev.ts_ms ? new Date(ev.ts_ms).toLocaleTimeString('zh-CN', {hour12:false}) : (ev.received_at ? new Date(ev.received_at).toLocaleTimeString('zh-CN') : '-');
+    const ftype = ev.fault_type || '';
+    const color = ftype === 'reconnect' ? '#7c3aed' : '#b45309';
+    const badge = ftype === 'reconnect'
+      ? `<span style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;flex-shrink:0">RECONNECT</span>`
+      : `<span style="background:#b45309;color:#fff;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;flex-shrink:0">DELAY</span>`;
+    const realStr = _fmtFaultObjFull(ev.real_object);
+    const sentStr = _fmtFaultObjFull(ev.sent_object);
+    const diffLines = _diffFaultObjs(ev.real_object, ev.sent_object);
+    const bid = `fe-${i}`;
+    const realLabel = ftype === 'reconnect' ? 'API Server 实际发出（新状态）' : 'API Server 实际发出（被丢弃）';
+    const sentLabel = ftype === 'reconnect' ? '控制器实际收到（注入的旧状态）' : '控制器实际收到（前一轮旧状态）';
+    html += `<div style="margin-bottom:6px;border:1px solid var(--bd);border-radius:6px;overflow:hidden">
+      <div onclick="_feToggle('${bid}',this)"
+           style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);cursor:pointer;user-select:none">
+        ${badge}
+        <span style="font-size:12px;font-weight:600;color:var(--tx1)">${esc(ev.resource_kind)}/${esc(ev.resource_namespace||'')}/${esc(ev.resource_name||'')}</span>
+        <span style="font-size:11px;color:var(--tx3)">rv=${esc(ev.resource_version||'-')}</span>
+        <span style="font-size:11px;color:var(--tx3);margin-left:auto">${esc(ts)}</span>
+        <span style="font-size:11px;color:var(--tx3)">task=${esc((ev.task_id||'').substring(0,8))}</span>
+        <span style="font-size:11px;color:var(--tx3)" id="${bid}-arrow">▶</span>
+      </div>
+      <div id="${bid}" style="display:none;padding:12px;background:var(--bg1)">
+        ${diffLines ? `<div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:${color};margin-bottom:6px">差异字段（注入前 → 注入后）</div>
+          <div style="font-family:monospace;font-size:11px;background:var(--bg2);padding:8px;border-radius:4px;border-left:3px solid ${color}">${diffLines}</div>
+        </div>` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--tx3);margin-bottom:4px;font-weight:600">${esc(realLabel)}</div>
+            <pre style="font-size:10px;background:var(--bg2);padding:8px;border-radius:4px;overflow:auto;max-height:400px;margin:0;white-space:pre-wrap;word-break:break-all">${esc(realStr)}</pre>
+          </div>
+          <div>
+            <div style="font-size:11px;color:${color};margin-bottom:4px;font-weight:600">${esc(sentLabel)}</div>
+            <pre style="font-size:10px;background:var(--bg2);padding:8px;border-radius:4px;overflow:auto;max-height:400px;margin:0;border-left:3px solid ${color};white-space:pre-wrap;word-break:break-all">${esc(sentStr)}</pre>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function _feToggle(bid, hdr) {
+  const body = document.getElementById(bid);
+  const arrow = document.getElementById(bid + '-arrow');
+  if (!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.textContent = open ? '▼' : '▶';
+}
+
+function _fmtFaultObjFull(obj) {
+  if (!obj) return '—';
+  try {
+    const parsed = typeof obj === 'string' ? JSON.parse(obj) : obj;
+    const meta = parsed.metadata || {};
+    const out = {
+      name: meta.name,
+      namespace: meta.namespace,
+      resourceVersion: meta.resourceVersion,
+      generation: meta.generation,
+      spec: parsed.spec,
+      status: parsed.status,
+    };
+    return JSON.stringify(out, null, 2);
+  } catch(e) {
+    return typeof obj === 'string' ? obj.substring(0, 2000) : JSON.stringify(obj).substring(0, 2000);
+  }
+}
+
+function _diffFaultObjs(real, sent) {
+  try {
+    const r = typeof real === 'string' ? JSON.parse(real) : (real || {});
+    const s = typeof sent === 'string' ? JSON.parse(sent) : (sent || {});
+    const lines = [];
+    function flatDiff(ro, so, prefix) {
+      const keys = new Set([...Object.keys(ro||{}), ...Object.keys(so||{})]);
+      keys.forEach(k => {
+        const path = prefix ? prefix + '.' + k : k;
+        const rv = ro?.[k], sv = so?.[k];
+        if (JSON.stringify(rv) === JSON.stringify(sv)) return;
+        if (rv !== null && sv !== null && typeof rv === 'object' && typeof sv === 'object'
+            && !Array.isArray(rv) && !Array.isArray(sv)) {
+          flatDiff(rv, sv, path);
+        } else {
+          const rvStr = rv === undefined ? '(无)' : JSON.stringify(rv);
+          const svStr = sv === undefined ? '(无)' : JSON.stringify(sv);
+          lines.push(`<span style="color:var(--tx2)">${esc(path)}</span>: `
+            + `<span style="color:#ef4444">${esc(rvStr.substring(0,120))}</span>`
+            + ` → <span style="color:#22c55e">${esc(svStr.substring(0,120))}</span>`);
+        }
+      });
+    }
+    // Compare spec and status subtrees
+    flatDiff(r.spec || {}, s.spec || {}, 'spec');
+    flatDiff(r.status || {}, s.status || {}, 'status');
+    if (!lines.length) return '';
+    return lines.join('<br>');
+  } catch(e) { return ''; }
+}
+
+function toggleRLAutoRefresh(btn) {
+  if (_rlAutoTimer) {
+    clearInterval(_rlAutoTimer); _rlAutoTimer = null;
+    btn.textContent = '自动刷新：关';
+  } else {
+    loadFaultEvents();
+    _rlAutoTimer = setInterval(loadFaultEvents, 8000);
+    btn.textContent = '自动刷新：开';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Log helpers
+// ══════════════════════════════════════════════════════════════════════════════
+function appendLog(elId,line){
+  const el=$(elId);if(!el)return;
+  const d=document.createElement('div');
+  const low=line.toLowerCase();
+  d.className=low.includes('error')||low.includes('failed')||low.includes('traceback')?'l-err':low.includes('完成')||low.includes('success')||low.includes('done')||low.includes('steady')||low.includes('[fault')?'l-ok':'l-info';
+  d.textContent=line;el.appendChild(d);
+  const key=elId.replace('-log','');
+  if(S.autoScroll[key]!==false)el.scrollTop=el.scrollHeight;
+  parseLogLine(line);
+}
+function clearLog(elId){const el=$(elId);if(el)el.innerHTML=''}
+function toggleAutoScroll(key,btn){S.autoScroll[key]=!S.autoScroll[key];btn.textContent='自动滚动：'+(S.autoScroll[key]?'开':'关')}
+
+function parseLogLine(line){
+  // E2E / general
+  const mr=line.match(/\[round (\d+)\]/);
+  if(mr){$('e2e-rounds').textContent=mr[1];updateStats({test_cases_run:parseInt(mr[1])})}
+  // Fault stats
+  const mc=line.match(/crash=(\d+)/);if(mc)$('ft-crash').textContent=mc[1];
+  const mrc=line.match(/reconnect=(\d+)/);if(mrc)$('ft-reconnect').textContent=mrc[1];
+  const md=line.match(/delay=(\d+)/);if(md)$('ft-delay').textContent=md[1];
+  const mfr=line.match(/\[fault round (\d+)\]/);if(mfr){$('ft-rounds').textContent=mfr[1];const n=parseInt(mfr[1]);updateStats({fault_injections:n})}
+  const mtr=line.match(/总轮次[:：]?\s*(\d+)/);if(mtr)$('ft-rounds').textContent=mtr[1];
+  const mf=line.match(/失败[:：]\s*(\d+)/);if(mf){$('ft-bugs').textContent=mf[1];updateStats({bugs_found:parseInt(mf[1])})}
+  // Testplan coverage
+  const mcov=line.match(/覆盖:\s*(\d+)\/(\d+)/);if(mcov)$('e2e-cases')&&($('e2e-cases').textContent=mcov[1]+'/'+mcov[2]);
+  // Test case count
+  const mtc=line.match(/加载测试用例[:：]\s*(\d+)/);if(mtc)$('e2e-cases').textContent=mtc[1];
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SSE
+// ══════════════════════════════════════════════════════════════════════════════
+const _KEY_STEP_MAP={e2e:'e2e_test',ft:'fault_test',ea:'relation_analysis',tp:'test_plan'};
+function connectSSE(jobId,logElId,key){
+  if(S.sse[key])S.sse[key].close();
+  const wrap=$(logElId.replace('-log','-log-wrap'));
+  if(wrap)wrap.style.display='';
+  const logEl=$(logElId);
+  if(logEl)logEl.innerHTML='';
+  const es=new EventSource('/api/jobs/'+jobId+'/stream');
+  S.sse[key]=es;
+  es.onmessage=e=>appendLog(logElId,JSON.parse(e.data));
+  async function _onEnd(){
+    es.close();delete S.sse[key];setBtnDone(key);stopDurationTimer(key);
+    // Determine final job status and update pipeline step
+    const stepKey=_KEY_STEP_MAP[key];
+    if(!stepKey)return;
+    try{
+      const r=await fetch('/api/jobs/'+jobId);
+      const j=await r.json();
+      const status=j.status; // 'done'|'error'|'stopped'
+      if(status==='done')updateStep(stepKey,{status:'completed'});
+      else if(status==='error')updateStep(stepKey,{status:'error'});
+      else if(status==='stopped')updateStep(stepKey,{status:'stopped'});
+    }catch(e){}
+  }
+  es.addEventListener('end',_onEnd);
+  es.onerror=()=>{es.close();delete S.sse[key];setBtnDone(key);stopDurationTimer(key);
+    const stepKey=_KEY_STEP_MAP[key];if(stepKey)updateStep(stepKey,{status:'error'});
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Button state
+// ══════════════════════════════════════════════════════════════════════════════
+function setBtnRunning(key){const btn=$(key+'-start-btn');if(!btn)return;btn._orig=btn.textContent;btn.textContent='运行中...';btn.disabled=true;btn.classList.add('is-running')}
+function setBtnDone(key){const btn=$(key+'-start-btn');if(!btn)return;btn.textContent=btn._orig||'开始';btn.disabled=false;btn.classList.remove('is-running')}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Duration timer
+// ══════════════════════════════════════════════════════════════════════════════
+function startDurationTimer(key){
+  S.startTimes[key]=Date.now();
+  if(S.durationTimers[key])clearInterval(S.durationTimers[key]);
+  const elId=key==='e2e'?'e2e-duration':'ft-duration';
+  S.durationTimers[key]=setInterval(()=>{
+    const sec=Math.floor((Date.now()-S.startTimes[key])/1000);
+    $(elId).textContent=fmtDuration(sec);
+  },1000);
+}
+function stopDurationTimer(key){
+  if(S.durationTimers[key]){clearInterval(S.durationTimers[key]);S.durationTimers[key]=null}
+  if(S.startTimes[key]){
+    const sec=Math.floor((Date.now()-S.startTimes[key])/1000);
+    const prev=S.pstate?S.pstate.stats.total_duration_sec:0;
+    updateStats({total_duration_sec:prev+sec});
+    S.startTimes[key]=null;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Explore-All (Relation Analysis)
+// ══════════════════════════════════════════════════════════════════════════════
+async function startExploreAll(){
+  if(!S.project){toast('请先选择项目',true);return}
+  const ckpt=$('ea-ckpt').value.trim();
+  setBtnRunning('ea');updateStep('relation_analysis',{status:'running'});
+  const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'explore-all',operator:S.project,checkpoint:ckpt})});
+  const job=await r.json();S.jobs.ea=job.id;
+  await fetch('/api/jobs/'+job.id+'/start',{method:'POST'});
+  clearLog('ea-log');$('ea-log-wrap').style.display='';
+  connectSSE(job.id,'ea-log','ea');
+  toast('关联分析已启动');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Test Plan Generation
+// ══════════════════════════════════════════════════════════════════════════════
+async function startTestPlan(){
+  if(!S.project){toast('请先选择项目',true);return}
+  const ckpt=$('tp-ckpt').value.trim();
+  const rounds=parseInt($('tp-rounds').value||'0');
+  setBtnRunning('tp');updateStep('test_plan',{status:'running'});
+  const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'testplan',operator:S.project,checkpoint:ckpt,max_rounds:rounds})});
+  const job=await r.json();S.jobs.tp=job.id;
+  await fetch('/api/jobs/'+job.id+'/start',{method:'POST'});
+  clearLog('tp-log');$('tp-log-wrap').style.display='';
+  connectSSE(job.id,'tp-log','tp');
+  toast('测试计划生成已启动');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// E2E Test
+// ══════════════════════════════════════════════════════════════════════════════
+async function startE2ETest(){
+  if(!S.project){toast('请先选择项目',true);return}
+  const tpCkpt=$('e2e-tp-ckpt').value.trim();
+  if(!tpCkpt){toast('请选择测试计划检查点',true);return}
+  const ckpt=$('e2e-ckpt').value.trim();
+  const rounds=parseInt($('e2e-max-rounds').value||'0');
+  setBtnRunning('e2e');updateStep('e2e_test',{status:'running'});
+  startDurationTimer('e2e');
+  const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'run',operator:S.project,checkpoint:ckpt,testplan_checkpoint:tpCkpt,max_rounds:rounds})});
+  const job=await r.json();S.jobs.e2e=job.id;
+  await fetch('/api/jobs/'+job.id+'/start',{method:'POST'});
+  clearLog('e2e-log');
+  connectSSE(job.id,'e2e-log','e2e');
+  toast('端到端测试已启动');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Fault Injection Test
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleFtSource(){$('ft-tp-row').style.display=$('ft-source').value==='testplan'?'':'none'}
+
+async function startFaultTest(){
+  if(!S.project){toast('请先选择项目',true);return}
+  const source=$('ft-source').value;
+  const tpCkpt=source==='testplan'?$('ft-tp-ckpt').value.trim():'';
+  if(source==='testplan'&&!tpCkpt){toast('请选择测试计划检查点',true);return}
+  const ckpt=$('ft-ckpt').value.trim();
+  const rounds=parseInt($('ft-max-rounds').value||'0');
+  const faultTypes=[...$('ft-fault-type-group').querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value).join(',');
+  if(!faultTypes){toast('请至少选择一种故障类型',true);return}
+  const fmUrl=$('ft-fm-url').value.trim();
+  setBtnRunning('ft');updateStep('fault_test',{status:'running'});
+  startDurationTimer('ft');
+  const body={mode:'fault',operator:S.project,checkpoint:ckpt,max_rounds:rounds,fault_types:faultTypes,fault_manager_url:fmUrl};
+  if(tpCkpt)body.testplan_checkpoint=tpCkpt;
+  const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const job=await r.json();S.jobs.ft=job.id;
+  await fetch('/api/jobs/'+job.id+'/start',{method:'POST'});
+  clearLog('ft-log');
+  connectSSE(job.id,'ft-log','ft');
+  toast('故障注入测试已启动');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Stop Job
+// ══════════════════════════════════════════════════════════════════════════════
+async function stopCurrentJob(key){
+  const id=S.jobs[key];if(!id){toast('无运行中的任务',true);return}
+  await fetch('/api/jobs/'+id+'/stop',{method:'POST'});
+  setBtnDone(key);stopDurationTimer(key);
+  // Update step status
+  const stepMap={ea:'relation_analysis',tp:'test_plan',e2e:'e2e_test',ft:'fault_test'};
+  if(stepMap[key])updateStep(stepMap[key],{status:'stopped'});
+  toast('已发送中断信号');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Current TC Viewer
+// ══════════════════════════════════════════════════════════════════════════════
+function closeTcModal(){$('tc-modal').style.display='none'}
+
+async function viewCurrentTc(key){
+  const id=S.jobs[key];
+  if(!id){toast('请先启动测试',true);return}
+  $('tc-modal-title').textContent='加载中...';
+  $('tc-modal-meta').textContent='';
+  $('tc-modal-cr').textContent='';
+  $('tc-modal').style.display='flex';
+  try{
+    const r=await fetch('/api/jobs/'+id+'/current-tc');
+    const d=await r.json();
+    if(!d.ok){
+      $('tc-modal-title').textContent='当前测试用例';
+      $('tc-modal-meta').textContent=d.reason||'暂无数据';
+      return;
+    }
+    $('tc-modal-title').textContent='当前测试用例';
+    $('tc-modal-meta').textContent=
+      (d.tc_id?'TC ID: '+d.tc_id:'')+(d.round?' | 已完成轮次: '+d.round:'');
+    $('tc-modal-cr').textContent=d.cr_yaml||'(CR 内容不可用)';
+  }catch(e){
+    $('tc-modal-title').textContent='当前测试用例';
+    $('tc-modal-meta').textContent='请求失败: '+e;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Checkpoint Picker
+// ══════════════════════════════════════════════════════════════════════════════
+let _ckptTarget=null;
+const _modeLabels={ea:'关联分析',tp:'测试计划',run:'端到端',fault:'故障注入'};
+const _modeBadge={ea:'badge-run',tp:'badge-ok',run:'badge-idle',fault:'badge-err'};
+const _ckptDataByPath={};  // path → checkpoint object (populated when picker fetches)
+
+function _renderCkptPreview(c){
+  const p=c.preview;
+  if(!p||!Object.keys(p).length)return '';
+  if(p._truncated)return '<div class="ckpt-preview"><span class="ckpt-stat">文件过大，无法预读</span></div>';
+  let s='',t='';
+  const m=c.mode;
+  if(m==='tp'){
+    s+=`<span class="ckpt-stat acc"><b>${p.tc_count||0}</b> 用例</span>`;
+    if(p.total_branches)s+=`<span class="ckpt-stat"><b>${p.covered_branches||0}/${p.total_branches}</b> 已覆盖分支 (${Math.round(100*(p.covered_branches||0)/p.total_branches)}%)</span>`;
+    if(p.total_targets)s+=`<span class="ckpt-stat"><b>${p.resolved_targets||0}/${p.total_targets}</b> 目标已解决</span>`;
+    if(p.round_n)s+=`<span class="ckpt-stat"><b>${p.round_n}</b> 轮</span>`;
+    if(p.tc_sample&&p.tc_sample.length){
+      t=p.tc_sample.map(id=>`<span class="ckpt-tc">TC-${esc(String(id))}</span>`).join('');
+      if(p.tc_count>p.tc_sample.length)t+=`<span class="ckpt-tc-more">…共 ${p.tc_count} 个</span>`;
+    }
+  } else if(m==='run'){
+    s+=`<span class="ckpt-stat"><b>${p.rounds||0}</b> 已完成轮`;
+    if(p.total_tc)s+=` / 共 ${p.total_tc} 用例`;
+    s+='</span>';
+    if(p.passed)s+=`<span class="ckpt-stat ok"><b>${p.passed}</b> 通过</span>`;
+    if(p.failed)s+=`<span class="ckpt-stat err"><b>${p.failed}</b> 失败</span>`;
+    if(p.errors)s+=`<span class="ckpt-stat warn"><b>${p.errors}</b> 错误</span>`;
+  } else if(m==='fault'||m==='ft'){
+    s+=`<span class="ckpt-stat"><b>${p.rounds||0}</b> 已完成轮`;
+    if(p.total_tc)s+=` / 共 ${p.total_tc} 用例`;
+    s+='</span>';
+    if(p.failures)s+=`<span class="ckpt-stat err"><b>${p.failures}</b> 故障触发</span>`;
+    if(p.fault_counts){
+      Object.entries(p.fault_counts).forEach(([k,v])=>{
+        if(v)s+=`<span class="ckpt-stat warn"><b>${v}</b> ${esc(k)}</span>`;
+      });
+    }
+  } else if(m==='ea'){
+    s+=`<span class="ckpt-stat"><b>${p.mutation_count||0}</b> 变异字段</span>`;
+    if(p.ok_count)s+=`<span class="ckpt-stat ok"><b>${p.ok_count}</b> 成功</span>`;
+    if(p.fail_count)s+=`<span class="ckpt-stat err"><b>${p.fail_count}</b> 失败</span>`;
+    if(p.relation_count)s+=`<span class="ckpt-stat acc"><b>${p.relation_count}</b> 关联字段</span>`;
+  }
+  let html='';
+  if(s)html+=`<div class="ckpt-preview">${s}</div>`;
+  if(t)html+=`<div class="ckpt-tcs">${t}</div>`;
+  return html;
+}
+
+async function openCkptPicker(inputId,prefix){
+  if(!S.project){toast('请先选择项目',true);return}
+  _ckptTarget=inputId;
+  const label=_modeLabels[prefix]||prefix||'全部';
+  $('ckpt-modal-title').textContent='选择检查点 — '+S.project+' ('+label+')';
+  $('ckpt-modal-body').innerHTML='<div class="empty">加载中...</div>';
+  $('ckpt-modal').classList.add('open');
+  const url='/api/instruments/'+encodeURIComponent(S.project)+'/checkpoints'+(prefix?'?prefix='+encodeURIComponent(prefix):'');
+  const r=await fetch(url);
+  const data=await r.json();
+  if(!data.length){$('ckpt-modal-body').innerHTML='<div class="empty">未找到 '+label+' 类型的检查点</div>';return}
+  data.forEach(c=>{_ckptDataByPath[c.checkpoint]=c;});
+  $('ckpt-modal-body').innerHTML=data.map(c=>`
+    <div class="ckpt-item" onclick="pickCkpt('${esc(c.checkpoint)}')">
+      <div class="ckpt-name"><span class="badge ${_modeBadge[c.mode]||'badge-idle'}" style="margin-right:6px">${esc(c.mode)}</span>${esc(c.name)}</div>
+      <div class="ckpt-meta">${esc(c.mtime)}</div>
+      ${_renderCkptPreview(c)}
+      <div class="ckpt-path">${esc(c.checkpoint)}</div>
+    </div>`).join('');
+}
+function pickCkpt(path){
+  if(!_ckptTarget)return;
+  $(_ckptTarget).value=path;
+  _showCkptInfoBar(_ckptTarget, path);
+  closeCkptModal();
+  toast('已选择检查点');
+}
+function _showCkptInfoBar(inputId, path){
+  const barId=inputId+'-info';
+  const bar=$(barId);
+  if(!bar)return;
+  const c=_ckptDataByPath[path];
+  if(!c){bar.classList.remove('visible');return;}
+  $(inputId+'-info-name').textContent=c.name+' · '+c.mtime;
+  const statsEl=$(inputId+'-info-stats');
+  const prev=_renderCkptPreview(c);
+  // Extract just the stat spans from the preview HTML
+  const tmp=document.createElement('div');tmp.innerHTML=prev;
+  const previewDiv=tmp.querySelector('.ckpt-preview');
+  statsEl.innerHTML=previewDiv?previewDiv.innerHTML:'';
+  const tcsDiv=tmp.querySelector('.ckpt-tcs');
+  if(tcsDiv)statsEl.innerHTML+=' '+tcsDiv.innerHTML;
+  bar.classList.add('visible');
+}
+function closeCkptModal(){$('ckpt-modal').classList.remove('open')}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Jobs management
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadJobs(){
+  const r=await fetch('/api/jobs');const data=await r.json();
+  const tbody=$('jobs-tbody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="6" class="empty">暂无任务</td></tr>';return}
+  tbody.innerHTML=[...data].reverse().map(j=>`<tr>
+    <td><code>${esc(j.id)}</code></td>
+    <td><b>${esc(j.mode)}</b></td>
+    <td>${esc(j.operator)}</td>
+    <td><span class="badge ${badgeFor(j.status)}">${statusText(j.status)}</span></td>
+    <td style="font-size:12px;color:var(--tx2)">${esc(j.created_at)}</td>
+    <td><div class="btn-group">
+      <button class="btn btn-sm" onclick="viewJobLog('${j.id}')">日志</button>
+      ${j.status==='running'?`<button class="btn btn-sm btn-danger" onclick="stopJobById('${j.id}')">中断</button>`:''}
+    </div></td>
+  </tr>`).join('');
+}
+
+async function viewJobLog(id){
+  const r=await fetch('/api/jobs/'+id+'?lines=500');const j=await r.json();
+  $('job-log-title').textContent='任务日志 — '+id+' ['+j.mode+'/'+j.operator+']';
+  const el=$('job-log-view');el.innerHTML='';
+  (j.log_tail||[]).forEach(line=>{const d=document.createElement('div');d.textContent=line;el.appendChild(d)});
+  $('job-log-card').style.display='';el.scrollTop=el.scrollHeight;
+  if(j.status==='running'){
+    if(S.sse['job-view'])S.sse['job-view'].close();
+    const es=new EventSource('/api/jobs/'+id+'/stream');
+    S.sse['job-view']=es;
+    es.onmessage=e=>{const d=document.createElement('div');d.textContent=JSON.parse(e.data);el.appendChild(d);el.scrollTop=el.scrollHeight};
+    es.addEventListener('end',()=>es.close());
+  }
+}
+
+async function stopJobById(id){await fetch('/api/jobs/'+id+'/stop',{method:'POST'});toast('已中断 '+id);loadJobs()}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Init
+// ══════════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{loadProjects()});
+</script>
+</body>
+</html>
